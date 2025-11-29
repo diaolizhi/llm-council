@@ -8,8 +8,8 @@ export const TRANSLATIONS = {
     'sidebar.title': 'Prompt Optimizer',
     'sidebar.newSession': '+ New Prompt',
     'sidebar.noSessions': 'No sessions yet',
-    'sidebar.iterationSingular': '{{count}} iteration',
-    'sidebar.iterationPlural': '{{count}} iterations',
+    'sidebar.iterationSingular': '{{count}} version',
+    'sidebar.iterationPlural': '{{count}} versions',
     'sidebar.language': 'Language',
     'sidebar.defaultSessionTitle': 'New Session',
 
@@ -25,11 +25,15 @@ export const TRANSLATIONS = {
     'iteration.alert.initFail': 'Failed to initialize prompt. Please try again.',
     'iteration.alert.testFail': 'Failed to test prompt. Please try again.',
     'iteration.alert.suggestFail': 'Failed to generate suggestions. Please try again.',
-    'iteration.alert.iterateFail': 'Failed to create new iteration. Please try again.',
+    'iteration.alert.iterateFail': 'Failed to create new version. Please try again.',
     'iteration.rationale.prompt': 'Please provide a brief rationale for this change:',
     'iteration.rationale.default': 'Applied improvement suggestions',
 
-    'iteration.header.version': 'Version {{version}}',
+    'iteration.header.version': 'Current version: v{{version}}',
+    'iteration.stage.init': 'Not started',
+    'iteration.stage.promptReady': 'Prompt ready',
+    'iteration.stage.titleReady': 'Ready for testing',
+    'iteration.stage.tested': 'Tested',
 
     'iteration.test.stepTitle': 'Step 1: Test Your Prompt',
     'iteration.test.stepDescription': 'Test this prompt with multiple LLMs to see how they respond.',
@@ -48,7 +52,7 @@ export const TRANSLATIONS = {
     'iteration.suggestions.generating': 'Generating Suggestions...',
 
     'promptEditor.title': 'Prompt',
-    'promptEditor.titleWithVersion': 'Prompt (Version {{version}})',
+    'promptEditor.titleWithVersion': 'Prompt (v{{version}})',
     'promptEditor.charCount': '{{count}} characters',
     'promptEditor.placeholder': 'Enter your prompt here...',
 
@@ -117,8 +121,8 @@ export const TRANSLATIONS = {
     'sidebar.title': '提示词优化器',
     'sidebar.newSession': '+ 新建提示词',
     'sidebar.noSessions': '暂无会话',
-    'sidebar.iterationSingular': '{{count}} 次迭代',
-    'sidebar.iterationPlural': '{{count}} 次迭代',
+    'sidebar.iterationSingular': '{{count}} 个版本',
+    'sidebar.iterationPlural': '{{count}} 个版本',
     'sidebar.language': '语言',
     'sidebar.defaultSessionTitle': '新会话',
 
@@ -134,11 +138,15 @@ export const TRANSLATIONS = {
     'iteration.alert.initFail': '初始化提示词失败，请重试。',
     'iteration.alert.testFail': '测试提示词失败，请重试。',
     'iteration.alert.suggestFail': '生成改进建议失败，请重试。',
-    'iteration.alert.iterateFail': '创建新迭代失败，请重试。',
+    'iteration.alert.iterateFail': '创建新版本失败，请重试。',
     'iteration.rationale.prompt': '请为此次修改提供简要原因：',
     'iteration.rationale.default': '应用了改进建议',
 
-    'iteration.header.version': '版本 {{version}}',
+    'iteration.header.version': '当前版本：v{{version}}',
+    'iteration.stage.init': '未开始',
+    'iteration.stage.promptReady': '提示词就绪',
+    'iteration.stage.titleReady': '可测试',
+    'iteration.stage.tested': '已测试',
 
     'iteration.test.stepTitle': '步骤 1：测试你的提示词',
     'iteration.test.stepDescription': '使用多个 LLM 测试此提示词，观察其表现。',
@@ -156,7 +164,7 @@ export const TRANSLATIONS = {
     'iteration.suggestions.generating': '正在生成建议...',
 
     'promptEditor.title': '提示词',
-    'promptEditor.titleWithVersion': '提示词（版本 {{version}}）',
+    'promptEditor.titleWithVersion': '提示词（v{{version}}）',
     'promptEditor.charCount': '{{count}} 个字符',
     'promptEditor.placeholder': '在这里输入你的提示词...',
 

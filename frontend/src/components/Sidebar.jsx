@@ -37,12 +37,12 @@ export default function Sidebar({
               onClick={() => onSelectSession(session.id)}
             >
               <div className="conversation-title">
-                {session.title || t('sidebar.defaultSessionTitle')}
+                {session.prompt_title || session.title || t('sidebar.defaultSessionTitle')}
               </div>
               <div className="conversation-meta">
-                {session.iteration_count === 1
-                  ? t('sidebar.iterationSingular', { count: session.iteration_count })
-                  : t('sidebar.iterationPlural', { count: session.iteration_count })}
+                {((session.version_count ?? session.iteration_count) || 0) === 1
+                  ? t('sidebar.iterationSingular', { count: session.version_count ?? session.iteration_count ?? 0 })
+                  : t('sidebar.iterationPlural', { count: session.version_count ?? session.iteration_count ?? 0 })}
               </div>
             </div>
           ))

@@ -20,6 +20,17 @@
   font-style: italic;
 }
 
+.stage-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background-color: #e6f2ff;
+  color: #1f6feb;
+  font-weight: 600;
+  font-style: normal;
+}
+
 .init-container {
   max-width: 800px;
   margin: 40px auto;

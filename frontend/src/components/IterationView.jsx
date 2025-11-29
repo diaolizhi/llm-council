@@ -18,6 +18,16 @@ function IterationView({ session, onAction }) {
 
   const latestIteration = session?.iterations?.[session.iterations.length - 1];
   const hasIterations = session?.iterations?.length > 0;
+  const promptTitle = session?.prompt_title || session?.title;
+  const stage = session?.stage;
+
+  const stageLabels = {
+    init: t('iteration.stage.init'),
+    prompt_ready: t('iteration.stage.promptReady'),
+    title_ready: t('iteration.stage.titleReady'),
+    tested: t('iteration.stage.tested')
+  };
+  const stageLabel = stage ? (stageLabels[stage] || stage) : null;
 
   const handleInitialize = async () => {
     setIsInitializing(true);
@@ -160,9 +170,11 @@ function IterationView({ session, onAction }) {
   return (
     <div className="iteration-view">
       <div className="iteration-header">
-        <h2>{t('iteration.header.version', { version: latestIteration.version })}</h2>
+        <h2>{promptTitle || t('promptEditor.title')}</h2>
         <div className="iteration-meta">
-          <span>{latestIteration.change_rationale}</span>
+          <span>{t('iteration.header.version', { version: latestIteration.version })}</span>
+          {stageLabel && <span className="stage-tag">{stageLabel}</span>}
+          {latestIteration.change_rationale && <span>{latestIteration.change_rationale}</span>}
         </div>
       </div>
 
