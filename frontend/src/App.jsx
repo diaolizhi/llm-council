@@ -110,7 +110,7 @@ function App() {
           return result;
 
         case 'test':
-          result = await api.testPrompt(currentSessionId, data.models, data.test_input);
+          result = await api.testPrompt(currentSessionId, data.test_sample_id, data.models);
           await loadSession(currentSessionId);
           setCurrentVersion((prev) => prev || result?.version || null);
           return result;

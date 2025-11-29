@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 import uuid
 
@@ -47,7 +47,21 @@ class InitializePromptRequest(BaseModel):
 class TestPromptRequest(BaseModel):
     """Request to test a prompt with models."""
     models: Optional[List[str]] = None
+    test_sample_id: str
+
+
+class TestSampleCreateRequest(BaseModel):
+    """Request to create a test sample."""
+    title: str
+    test_input: str
+    notes: Optional[str] = None
+
+
+class TestSampleUpdateRequest(BaseModel):
+    """Request to update a test sample."""
+    title: Optional[str] = None
     test_input: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class SubmitFeedbackRequest(BaseModel):
@@ -101,6 +115,7 @@ class Session(BaseModel):
     prompt_title: Optional[str] = None
     current_version: int = 0
     stage: str = "init"
+    test_set: List[Dict[str, Any]] = Field(default_factory=list)
     iterations: List[Dict[str, Any]]
 
 
@@ -126,6 +141,60 @@ async def create_session(request: CreateSessionRequest):
         objective=request.objective
     )
     return session
+
+
+@app.get("/api/sessions/{session_id}/test-samples")
+async def list_test_samples(session_id: str):
+    """List test samples for a session."""
+    try:
+        samples = storage.list_test_samples(session_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"samples": samples}
+
+
+@app.post("/api/sessions/{session_id}/test-samples")
+async def create_test_sample(session_id: str, request: TestSampleCreateRequest):
+    """Create a test sample for a session."""
+    try:
+        sample = storage.add_test_sample(
+            session_id,
+            title=request.title,
+            test_input=request.test_input,
+            notes=request.notes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+    return sample
+
+
+@app.put("/api/sessions/{session_id}/test-samples/{sample_id}")
+async def update_test_sample(session_id: str, sample_id: str, request: TestSampleUpdateRequest):
+    """Update a test sample."""
+    try:
+        sample = storage.update_test_sample(
+            session_id,
+            sample_id,
+            title=request.title,
+            test_input=request.test_input,
+            notes=request.notes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+    return sample
+
+
+@app.delete("/api/sessions/{session_id}/test-samples/{sample_id}")
+async def delete_test_sample(session_id: str, sample_id: str):
+    """Delete a test sample."""
+    try:
+        storage.delete_test_sample(session_id, sample_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+    return {"status": "deleted"}
 
 
 @app.get("/api/sessions/{session_id}", response_model=Session)
@@ -203,6 +272,13 @@ async def test_prompt(session_id: str, request: TestPromptRequest):
     if iteration is None:
         raise HTTPException(status_code=404, detail="No iterations found. Initialize prompt first.")
 
+    if not request.test_sample_id or not request.test_sample_id.strip():
+        raise HTTPException(status_code=400, detail="A test sample must be selected.")
+
+    sample = storage.get_test_sample(session_id, request.test_sample_id)
+    if not sample:
+        raise HTTPException(status_code=404, detail="Test sample not found")
+
     # Use provided models or default to TEST_MODELS
     models = request.models if request.models else TEST_MODELS
 
@@ -210,7 +286,7 @@ async def test_prompt(session_id: str, request: TestPromptRequest):
     test_results = await test_prompt_with_models(
         iteration["prompt"],
         models=models,
-        test_input=request.test_input
+        test_input=sample.get("input")
     )
 
     # Update the iteration with test results
@@ -218,6 +294,9 @@ async def test_prompt(session_id: str, request: TestPromptRequest):
         session_id,
         iteration["version"],
         test_results,
+        test_sample_id=sample["id"],
+        test_sample_title=sample.get("title"),
+        test_sample_input=sample.get("input"),
         stage="tested",
         clear_feedback=True,
         clear_suggestions=True
@@ -229,7 +308,8 @@ async def test_prompt(session_id: str, request: TestPromptRequest):
     return {
         "version": iteration["version"],
         "test_results": test_results,
-        "stage": session.get("stage")
+        "stage": session.get("stage"),
+        "test_sample": sample,
     }
 
 

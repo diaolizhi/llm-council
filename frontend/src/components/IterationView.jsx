@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import PromptEditor from './PromptEditor';
 import TestResults from './TestResults';
 import SuggestionAggregator from './SuggestionAggregator';
+import { api } from '../api';
 import { useI18n } from '../i18n/i18n.jsx';
 import './IterationView.css';
 
@@ -14,11 +15,19 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
   const [isResettingDependentData, setIsResettingDependentData] = useState(false);
   const [initMode, setInitMode] = useState('generate'); // 'generate' or 'provide'
   const [objective, setObjective] = useState('');
-  const [testInput, setTestInput] = useState('');
-  const [showTestInput, setShowTestInput] = useState(false);
   const [showManualModal, setShowManualModal] = useState(false);
   const [manualPrompt, setManualPrompt] = useState('');
   const [manualRationale, setManualRationale] = useState('');
+  const [testSamples, setTestSamples] = useState([]);
+  const [selectedSampleId, setSelectedSampleId] = useState(null);
+  const [sampleTitle, setSampleTitle] = useState('');
+  const [sampleInput, setSampleInput] = useState('');
+  const [sampleNotes, setSampleNotes] = useState('');
+  const [isSavingSample, setIsSavingSample] = useState(false);
+  const [isDeletingSample, setIsDeletingSample] = useState(false);
+  const [showSampleModal, setShowSampleModal] = useState(false);
+  const [editingSampleId, setEditingSampleId] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
   const { t } = useI18n();
 
   const sortedIterations = (session?.iterations || []).slice().sort((a, b) => b.version - a.version);
@@ -28,7 +37,19 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
   const hasIterations = session?.iterations?.length > 0;
   const promptTitle = session?.prompt_title || session?.title;
   const stage = activeIteration?.stage || session?.stage;
-  const isHidingDependentData = isResettingDependentData || isTesting;
+  const activeSampleId = activeIteration?.test_sample_id || null;
+  const activeSampleTitle = activeIteration?.test_sample_title || '';
+  const activeSampleInput = activeIteration?.test_sample_input || '';
+  const activeSampleFromSet = testSamples.find((s) => s.id === activeSampleId);
+  const selectedSampleMismatch =
+    (selectedSampleId && activeSampleId && selectedSampleId !== activeSampleId) ||
+    (!selectedSampleId && Boolean(activeSampleId));
+  const sampleUsedTitle = activeSampleTitle || activeSampleFromSet?.title || t('iteration.test.defaultSampleTitle');
+  const sampleUsedInput = activeSampleInput || activeSampleFromSet?.input || '';
+  const selectedSample = testSamples.find((s) => s.id === selectedSampleId);
+  const selectedSampleInput = selectedSample?.input || '';
+  const selectedSampleTitle = selectedSample?.title || '';
+  const isHidingDependentData = isResettingDependentData || isTesting || selectedSampleMismatch;
   const visibleTestResults = isHidingDependentData ? [] : (activeIteration?.test_results || []);
   const visibleSuggestions = isHidingDependentData ? [] : (activeIteration?.suggestions || []);
 
@@ -39,6 +60,33 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
     tested: t('iteration.stage.tested')
   };
   const stageLabel = stage ? (stageLabels[stage] || stage) : null;
+
+  useEffect(() => {
+    const samples = session?.test_set || [];
+    setTestSamples(samples);
+  }, [session?.test_set]);
+
+  useEffect(() => {
+    const preferredId = activeSampleId || (testSamples[0]?.id ?? null);
+    setSelectedSampleId(preferredId);
+    setEditingSampleId(preferredId);
+
+    const targetSample = testSamples.find((s) => s.id === preferredId);
+    if (targetSample) {
+      setSampleTitle(targetSample.title || '');
+      setSampleInput(targetSample.input || '');
+      setSampleNotes(targetSample.notes || '');
+    } else {
+      setSampleTitle('');
+      setSampleInput('');
+      setSampleNotes('');
+    }
+  }, [activeSampleId, testSamples]);
+
+  const showError = (message) => {
+    setErrorMessage(message);
+    setTimeout(() => setErrorMessage(null), 5000);
+  };
 
   const handleVersionChange = (e) => {
     const version = Number(e.target.value);
@@ -72,7 +120,7 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
       setShowManualModal(false);
     } catch (error) {
       console.error('Error creating manual version:', error);
-      alert(t('iteration.alert.iterateFail'));
+      showError(t('iteration.alert.iterateFail'));
     } finally {
       setIsSavingManual(false);
     }
@@ -88,29 +136,140 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
       });
     } catch (error) {
       console.error('Error initializing:', error);
-      alert(t('iteration.alert.initFail'));
+      showError(t('iteration.alert.initFail'));
     } finally {
       setIsInitializing(false);
     }
   };
 
-  const handleTestClick = () => {
-    setShowTestInput(true);
+  const refreshSamples = async () => {
+    if (!session?.id) return [];
+    try {
+      const samples = await api.listTestSamples(session.id);
+      setTestSamples(samples);
+      return samples;
+    } catch (error) {
+      console.error('Error loading test samples:', error);
+      return [];
+    }
+  };
+
+  const handleSelectSample = (sampleId) => {
+    const sample = testSamples.find((s) => s.id === sampleId);
+    const nextId = sample?.id || null;
+    setSelectedSampleId(nextId);
+    setEditingSampleId(nextId);
+    setSampleTitle(sample?.title || '');
+    setSampleInput(sample?.input || '');
+    setSampleNotes(sample?.notes || '');
+  };
+
+  const handleNewSample = () => {
+    setSelectedSampleId(null);
+    setEditingSampleId(null);
+    setSampleTitle('');
+    setSampleInput('');
+    setSampleNotes('');
+  };
+
+  const handleSaveSample = async () => {
+    if (!session?.id) return;
+    if (!sampleInput.trim()) {
+      showError(t('iteration.test.sampleRequired'));
+      return;
+    }
+
+    setIsSavingSample(true);
+    try {
+      let savedSample = null;
+      const targetId = editingSampleId || selectedSampleId;
+      if (targetId) {
+        savedSample = await api.updateTestSample(session.id, targetId, {
+          title: sampleTitle,
+          test_input: sampleInput,
+          notes: sampleNotes || null,
+        });
+      } else {
+        savedSample = await api.createTestSample(session.id, {
+          title: sampleTitle || t('iteration.test.defaultSampleTitle'),
+          test_input: sampleInput,
+          notes: sampleNotes || null,
+        });
+      }
+
+      const samples = await refreshSamples();
+      const nextId = savedSample?.id || targetId || (samples[0]?.id ?? null);
+      setSelectedSampleId(nextId);
+      setEditingSampleId(nextId);
+      const nextSample = samples.find((s) => s.id === nextId);
+      if (nextSample) {
+        setSampleTitle(nextSample.title || '');
+        setSampleInput(nextSample.input || '');
+        setSampleNotes(nextSample.notes || '');
+      }
+    } catch (error) {
+      console.error('Error saving test sample:', error);
+      showError(t('iteration.test.saveSampleFail'));
+    } finally {
+      setIsSavingSample(false);
+    }
+  };
+
+  const handleDeleteSample = async (sampleId = null) => {
+    const targetId = sampleId || editingSampleId || selectedSampleId;
+    if (!session?.id || !targetId) return;
+    setIsDeletingSample(true);
+    try {
+      await api.deleteTestSample(session.id, targetId);
+      const samples = await refreshSamples();
+      const nextId = samples[0]?.id ?? null;
+      setSelectedSampleId(nextId);
+      setEditingSampleId(nextId);
+      const nextSample = samples.find((s) => s.id === nextId);
+      setSampleTitle(nextSample?.title || '');
+      setSampleInput(nextSample?.input || '');
+      setSampleNotes(nextSample?.notes || '');
+    } catch (error) {
+      console.error('Error deleting test sample:', error);
+      showError(t('iteration.test.deleteSampleFail'));
+    } finally {
+      setIsDeletingSample(false);
+    }
   };
 
   const handleTest = async () => {
+    if (!selectedSampleId) {
+      showError(t('iteration.test.sampleRequired'));
+      return;
+    }
+
     setIsTesting(true);
     setIsResettingDependentData(true);
     try {
-      await onAction('test', { test_input: testInput || null });
-      setShowTestInput(false);
+      await onAction('test', { test_sample_id: selectedSampleId });
     } catch (error) {
       console.error('Error testing:', error);
-      alert(t('iteration.alert.testFail'));
+      showError(t('iteration.alert.testFail'));
     } finally {
       setIsTesting(false);
       setIsResettingDependentData(false);
     }
+  };
+
+  const openSampleModal = async () => {
+    setShowSampleModal(true);
+    const samples = await refreshSamples();
+    const preferId = selectedSampleId || samples[0]?.id || null;
+    const sample = samples.find((s) => s.id === preferId);
+    setEditingSampleId(preferId);
+    setSampleTitle(sample?.title || '');
+    setSampleInput(sample?.input || '');
+    setSampleNotes(sample?.notes || '');
+  };
+
+  const closeSampleModal = () => {
+    if (isSavingSample || isDeletingSample) return;
+    setShowSampleModal(false);
   };
 
   const handleFeedbackChange = async (model, feedback) => {
@@ -127,7 +286,7 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
       await onAction('suggest', {});
     } catch (error) {
       console.error('Error generating suggestions:', error);
-      alert(t('iteration.alert.suggestFail'));
+      showError(t('iteration.alert.suggestFail'));
     } finally {
       setIsGeneratingSuggestions(false);
     }
@@ -153,6 +312,11 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
   if (!hasIterations) {
     return (
       <div className="iteration-view">
+        {errorMessage && (
+          <div className="error-toast">
+            {errorMessage}
+          </div>
+        )}
         <div className="init-container">
           <h2>{t('iteration.init.title')}</h2>
 
@@ -207,6 +371,11 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
   // Main iteration view
   return (
     <div className="iteration-view">
+      {errorMessage && (
+        <div className="error-toast">
+          {errorMessage}
+        </div>
+      )}
       <div className="iteration-header">
         <h2>{promptTitle || t('promptEditor.title')}</h2>
         {sortedIterations.length > 0 && (
@@ -248,46 +417,50 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
         <h3>{t('iteration.test.stepTitle')}</h3>
         <p>{t('iteration.test.stepDescription')}</p>
 
-        {!showTestInput ? (
+        <div className="sample-select-row">
+          <label className="sample-label">{t('iteration.test.sampleSelectLabel')}</label>
+          <select
+            value={selectedSampleId || ''}
+            onChange={(e) => handleSelectSample(e.target.value || null)}
+            className="sample-select"
+          >
+            <option value="">{t('iteration.test.selectPlaceholder')}</option>
+            {testSamples.map((sample) => (
+              <option key={sample.id} value={sample.id}>
+                {sample.title || t('iteration.test.defaultSampleTitle')}
+              </option>
+            ))}
+          </select>
+          <button className="secondary-btn" onClick={openSampleModal}>
+            {t('iteration.test.manageSamples')}
+          </button>
+        </div>
+
+        <div className="test-runner">
           <button
             className="action-btn test-btn"
-            onClick={handleTestClick}
-            disabled={isTesting}
+            onClick={handleTest}
+            disabled={isTesting || !selectedSampleId || !selectedSampleInput.trim()}
           >
-            {t('iteration.test.button')}
+            {isTesting ? t('iteration.test.testing') : t('iteration.test.button')}
           </button>
-        ) : (
-          <div className="test-input-container">
-            <label>{t('iteration.test.testInputLabel')}</label>
-            <textarea
-              value={testInput}
-              onChange={(e) => setTestInput(e.target.value)}
-              placeholder={t('iteration.test.placeholder')}
-              rows={4}
-              className="test-input-textarea"
-            />
-            <div className="test-input-actions">
-              <button
-                className="action-btn test-btn"
-                onClick={handleTest}
-                disabled={isTesting}
-              >
-                {isTesting ? t('iteration.test.testing') : t('iteration.test.run')}
-              </button>
-              <button
-                className="action-btn cancel-btn"
-                onClick={() => setShowTestInput(false)}
-                disabled={isTesting}
-              >
-                {t('iteration.test.cancel')}
-              </button>
-            </div>
-          </div>
-        )}
+          {selectedSampleMismatch && (
+            <p className="info-text">{t('iteration.test.sampleMismatch')}</p>
+          )}
+        </div>
       </div>
 
       {visibleTestResults && visibleTestResults.length > 0 && (
         <>
+          <div className="test-sample-summary">
+            <div className="test-sample-summary-header">
+              <h4>{t('iteration.test.sampleSummaryTitle')}</h4>
+              {sampleUsedTitle && <span className="sample-title-chip">{sampleUsedTitle}</span>}
+            </div>
+            <div className="test-sample-summary-body">
+              <pre>{sampleUsedInput || t('iteration.test.noSampleInput')}</pre>
+            </div>
+          </div>
           <TestResults
             testResults={visibleTestResults}
             onFeedbackChange={handleFeedbackChange}
@@ -344,6 +517,100 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
               >
                 {isSavingManual ? t('common.loading') : t('iteration.manual.save')}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSampleModal && (
+        <div className="sample-modal-backdrop" onClick={closeSampleModal}>
+          <div className="sample-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="sample-modal-header">
+              <h4>{t('iteration.test.sampleModalTitle')}</h4>
+              <button className="secondary-btn" onClick={handleNewSample}>
+                {t('iteration.test.newSample')}
+              </button>
+            </div>
+
+            <div className="sample-modal-content">
+              <div className="sample-list">
+                {testSamples.length === 0 && (
+                  <p className="info-text">{t('iteration.test.sampleListEmpty')}</p>
+                )}
+                {testSamples.map((sample) => (
+                  <div
+                    key={sample.id}
+                    className={`sample-card ${editingSampleId === sample.id ? 'active' : ''}`}
+                    onClick={() => {
+                      setEditingSampleId(sample.id);
+                      handleSelectSample(sample.id);
+                    }}
+                  >
+                    <div className="sample-card-title">{sample.title || t('iteration.test.defaultSampleTitle')}</div>
+                    <div className="sample-card-body">
+                      <p className="sample-card-notes">{sample.notes}</p>
+                      <pre className="sample-card-preview">{sample.input}</pre>
+                    </div>
+                    <div className="sample-card-actions">
+                      <button
+                        className="cancel-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteSample(sample.id);
+                        }}
+                        disabled={isDeletingSample}
+                      >
+                        {isDeletingSample ? t('common.loading') : t('iteration.test.deleteSample')}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="sample-form">
+                <label className="sample-label">{t('iteration.test.sampleTitleLabel')}</label>
+                <input
+                  className="sample-input"
+                  value={sampleTitle}
+                  onChange={(e) => setSampleTitle(e.target.value)}
+                  placeholder={t('iteration.test.sampleTitlePlaceholder')}
+                />
+
+                <label className="sample-label">{t('iteration.test.sampleInputLabel')}</label>
+                <textarea
+                  className="sample-textarea"
+                  rows={6}
+                  value={sampleInput}
+                  onChange={(e) => setSampleInput(e.target.value)}
+                  placeholder={t('iteration.test.sampleInputPlaceholder')}
+                />
+
+                <label className="sample-label">{t('iteration.test.sampleNotesLabel')}</label>
+                <textarea
+                  className="sample-textarea"
+                  rows={3}
+                  value={sampleNotes}
+                  onChange={(e) => setSampleNotes(e.target.value)}
+                  placeholder={t('iteration.test.sampleNotesPlaceholder')}
+                />
+
+                <div className="sample-actions">
+                  <button
+                    className="action-btn"
+                    onClick={handleSaveSample}
+                    disabled={isSavingSample || !sampleInput.trim()}
+                  >
+                    {isSavingSample
+                      ? t('common.loading')
+                      : editingSampleId
+                        ? t('iteration.test.updateSample')
+                        : t('iteration.test.saveSample')}
+                  </button>
+                  <button className="cancel-btn" onClick={closeSampleModal} disabled={isSavingSample || isDeletingSample}>
+                    {t('iteration.test.closeSampleModal')}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

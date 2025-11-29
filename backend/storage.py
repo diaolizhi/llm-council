@@ -2,6 +2,7 @@
 
 import json
 import os
+import uuid
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from pathlib import Path
@@ -42,7 +43,8 @@ def create_session(session_id: str, title: str = "New Optimization Session", obj
         "prompt_title": None,
         "current_version": 0,
         "stage": "init",
-        "iterations": []
+        "iterations": [],
+        "test_set": []
     }
 
     with open(_get_session_path(session_id), 'w', encoding='utf-8') as f:
@@ -72,10 +74,14 @@ def get_session(session_id: str) -> Optional[Dict[str, Any]]:
     session.setdefault("prompt_title", None)
     session.setdefault("current_version", len(session.get("iterations", [])))
     session.setdefault("stage", "init")
+    session.setdefault("test_set", [])
 
     # Ensure iterations have stage metadata; default to session stage if missing
     for iteration in session.get("iterations", []):
         iteration.setdefault("stage", session.get("stage", "init"))
+        iteration.setdefault("test_sample_id", None)
+        iteration.setdefault("test_sample_title", None)
+        iteration.setdefault("test_sample_input", None)
 
     return session
 
@@ -137,6 +143,113 @@ def update_session_title(session_id: str, title: str):
             json.dump(session, f, indent=2, ensure_ascii=False)
 
 
+def list_test_samples(session_id: str) -> List[Dict[str, Any]]:
+    """
+    List test samples for a session.
+    """
+    session = get_session(session_id)
+    if not session:
+        raise ValueError(f"Session {session_id} not found")
+
+    return session.get("test_set", [])
+
+
+def add_test_sample(
+    session_id: str,
+    title: str,
+    test_input: str,
+    notes: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Add a test sample to a session.
+    """
+    session = get_session(session_id)
+    if not session:
+        raise ValueError(f"Session {session_id} not found")
+
+    sample = {
+        "id": str(uuid.uuid4()),
+        "title": title or "Untitled sample",
+        "input": test_input or "",
+        "notes": notes,
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat(),
+    }
+
+    session.setdefault("test_set", []).append(sample)
+
+    with open(_get_session_path(session_id), 'w', encoding='utf-8') as f:
+        json.dump(session, f, indent=2, ensure_ascii=False)
+
+    return sample
+
+
+def update_test_sample(
+    session_id: str,
+    sample_id: str,
+    title: Optional[str] = None,
+    test_input: Optional[str] = None,
+    notes: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Update an existing test sample.
+    """
+    session = get_session(session_id)
+    if not session:
+        raise ValueError(f"Session {session_id} not found")
+
+    for sample in session.setdefault("test_set", []):
+        if sample["id"] == sample_id:
+            if title is not None:
+                sample["title"] = title
+            if test_input is not None:
+                sample["input"] = test_input
+            if notes is not None:
+                sample["notes"] = notes
+            sample["updated_at"] = datetime.now().isoformat()
+            break
+    else:
+        raise ValueError(f"Test sample {sample_id} not found in session {session_id}")
+
+    with open(_get_session_path(session_id), 'w', encoding='utf-8') as f:
+        json.dump(session, f, indent=2, ensure_ascii=False)
+
+    return sample
+
+
+def delete_test_sample(session_id: str, sample_id: str):
+    """
+    Delete a test sample from a session.
+    """
+    session = get_session(session_id)
+    if not session:
+        raise ValueError(f"Session {session_id} not found")
+
+    original_count = len(session.get("test_set", []))
+    session["test_set"] = [s for s in session.get("test_set", []) if s["id"] != sample_id]
+
+    if len(session["test_set"]) == original_count:
+        raise ValueError(f"Test sample {sample_id} not found in session {session_id}")
+
+    with open(_get_session_path(session_id), 'w', encoding='utf-8') as f:
+        json.dump(session, f, indent=2, ensure_ascii=False)
+
+
+def get_test_sample(session_id: str, sample_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Get a single test sample by id.
+    """
+    session = get_session(session_id)
+    if not session:
+        return None
+
+    for sample in session.get("test_set", []):
+        if sample["id"] == sample_id:
+            return sample
+
+    return None
+
+
 def add_iteration(
     session_id: str,
     prompt: str,
@@ -178,6 +291,9 @@ def add_iteration(
         "suggestions": suggestions or [],
         "user_decision": user_decision,
         "stage": stage,
+        "test_sample_id": None,
+        "test_sample_title": None,
+        "test_sample_input": None,
     }
 
     session["iterations"].append(iteration)
@@ -198,6 +314,9 @@ def update_iteration_test_results(
     session_id: str,
     version: int,
     test_results: List[Dict[str, Any]],
+    test_sample_id: Optional[str] = None,
+    test_sample_title: Optional[str] = None,
+    test_sample_input: Optional[str] = None,
     stage: Optional[str] = None,
     clear_feedback: bool = False,
     clear_suggestions: bool = False,
@@ -226,6 +345,12 @@ def update_iteration_test_results(
                 iteration["suggestions"] = []
             if stage:
                 iteration["stage"] = stage
+            if test_sample_id is not None:
+                iteration["test_sample_id"] = test_sample_id
+            if test_sample_title is not None:
+                iteration["test_sample_title"] = test_sample_title
+            if test_sample_input is not None:
+                iteration["test_sample_input"] = test_sample_input
             break
     else:
         raise ValueError(f"Version {version} not found in session {session_id}")

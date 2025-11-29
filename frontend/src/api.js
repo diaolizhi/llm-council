@@ -83,13 +83,13 @@ export const api = {
   /**
    * Test a prompt with models.
    */
-  async testPrompt(sessionId, models = null, testInput = null) {
+  async testPrompt(sessionId, testSampleId, models = null) {
     const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/test`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ models, test_input: testInput }),
+      body: JSON.stringify({ models, test_sample_id: testSampleId }),
     });
     if (!response.ok) {
       throw new Error('Failed to test prompt');
@@ -217,6 +217,65 @@ export const api = {
     });
     if (!response.ok) {
       throw new Error('Failed to restore version');
+    }
+    return response.json();
+  },
+
+  /**
+   * List test samples for a session.
+   */
+  async listTestSamples(sessionId) {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/test-samples`);
+    if (!response.ok) {
+      throw new Error('Failed to list test samples');
+    }
+    const data = await response.json();
+    return data.samples || [];
+  },
+
+  /**
+   * Create a test sample for a session.
+   */
+  async createTestSample(sessionId, { title, test_input, notes = null }) {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/test-samples`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ title, test_input, notes }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to create test sample');
+    }
+    return response.json();
+  },
+
+  /**
+   * Update a test sample for a session.
+   */
+  async updateTestSample(sessionId, sampleId, { title, test_input, notes = null }) {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/test-samples/${sampleId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ title, test_input, notes }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to update test sample');
+    }
+    return response.json();
+  },
+
+  /**
+   * Delete a test sample for a session.
+   */
+  async deleteTestSample(sessionId, sampleId) {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/test-samples/${sampleId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to delete test sample');
     }
     return response.json();
   },
