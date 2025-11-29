@@ -1,0 +1,202 @@
+.suggestion-aggregator {
+  margin: 20px 0;
+  padding: 20px;
+  background-color: #f0f8ff;
+  border-radius: 8px;
+  border: 2px solid #4a90e2;
+}
+
+.suggestions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.suggestions-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.no-suggestions {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-style: italic;
+}
+
+.merge-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.merge-btn {
+  padding: 10px 20px;
+  background-color: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.merge-btn:hover:not(:disabled) {
+  background-color: #357abd;
+}
+
+.merge-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.user-preference {
+  margin-bottom: 15px;
+}
+
+.preference-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.preference-input:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+.suggestions-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #ddd;
+  overflow-x: auto;
+}
+
+.suggestions-content {
+  position: relative;
+  min-height: 200px;
+}
+
+.suggestion-panel {
+  display: none;
+}
+
+.suggestion-panel.active {
+  display: block;
+}
+
+.suggestion-header {
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.suggestion-header h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.suggestion-text {
+  padding: 15px;
+  background-color: #fff;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  min-height: 150px;
+  margin-bottom: 15px;
+}
+
+.suggestion-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.accept-btn {
+  padding: 10px 20px;
+  background-color: #fff;
+  color: #4a90e2;
+  border: 2px solid #4a90e2;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.accept-btn:hover {
+  background-color: #4a90e2;
+  color: #fff;
+}
+
+.accept-btn.primary {
+  background-color: #4a90e2;
+  color: #fff;
+}
+
+.accept-btn.primary:hover {
+  background-color: #357abd;
+}
+
+.merged-suggestion {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.merged-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #4a90e2;
+}
+
+.merged-header h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.back-btn {
+  padding: 8px 16px;
+  background-color: transparent;
+  color: #4a90e2;
+  border: 1px solid #4a90e2;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background-color: #f0f0f0;
+}
+
+.merged-content {
+  margin-bottom: 20px;
+}
+
+.merged-prompt {
+  padding: 15px;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+.merged-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}

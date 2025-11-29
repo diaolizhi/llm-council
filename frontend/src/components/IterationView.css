@@ -1,0 +1,222 @@
+.iteration-view {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.iteration-header {
+  margin-bottom: 20px;
+}
+
+.iteration-header h2 {
+  margin: 0 0 10px 0;
+  font-size: 24px;
+  color: #333;
+}
+
+.iteration-meta {
+  color: #666;
+  font-size: 14px;
+  font-style: italic;
+}
+
+.init-container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 40px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.init-container h2 {
+  margin-top: 0;
+  margin-bottom: 30px;
+  text-align: center;
+  color: #333;
+}
+
+.init-mode-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  justify-content: center;
+}
+
+.mode-btn {
+  flex: 1;
+  max-width: 250px;
+  padding: 15px 20px;
+  background-color: #f5f5f5;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.mode-btn:hover {
+  background-color: #e8e8e8;
+  border-color: #4a90e2;
+}
+
+.mode-btn.active {
+  background-color: #4a90e2;
+  border-color: #4a90e2;
+  color: #fff;
+}
+
+.init-form {
+  margin-bottom: 30px;
+}
+
+.init-form label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: #333;
+}
+
+.objective-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.objective-input:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+.init-btn {
+  width: 100%;
+  padding: 15px;
+  background-color: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.init-btn:hover:not(:disabled) {
+  background-color: #357abd;
+}
+
+.init-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.action-section {
+  margin: 30px 0;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  border-left: 4px solid #4a90e2;
+}
+
+.action-section h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 18px;
+  color: #333;
+}
+
+.action-section p {
+  margin-bottom: 15px;
+  color: #666;
+  font-size: 14px;
+}
+
+.action-btn {
+  padding: 12px 24px;
+  background-color: #4a90e2;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.action-btn:hover:not(:disabled) {
+  background-color: #357abd;
+}
+
+.action-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.test-btn {
+  background-color: #28a745;
+}
+
+.test-btn:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+.suggest-btn {
+  background-color: #6f42c1;
+}
+
+.suggest-btn:hover:not(:disabled) {
+  background-color: #5a32a3;
+}
+
+.test-input-container {
+  margin-top: 15px;
+  padding: 20px;
+  background-color: #fff;
+  border: 2px solid #4a90e2;
+  border-radius: 8px;
+}
+
+.test-input-container label {
+  display: block;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.test-input-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+  margin-bottom: 15px;
+}
+
+.test-input-textarea:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+.test-input-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.cancel-btn {
+  background-color: #6c757d;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background-color: #5a6268;
+}

@@ -1,0 +1,44 @@
+.prompt-editor {
+  margin: 20px 0;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.editor-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.char-count {
+  font-size: 14px;
+  color: #666;
+}
+
+.prompt-textarea {
+  width: 100%;
+  min-height: 200px;
+  padding: 12px;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.prompt-textarea:focus {
+  outline: none;
+  border-color: #4a90e2;
+}
+
+.prompt-textarea:read-only {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}

@@ -1,199 +1,152 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
-import ChatInterface from './components/ChatInterface';
+import IterationView from './components/IterationView';
 import { api } from './api';
 import './App.css';
 
 function App() {
-  const [conversations, setConversations] = useState([]);
-  const [currentConversationId, setCurrentConversationId] = useState(null);
-  const [currentConversation, setCurrentConversation] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [sessions, setSessions] = useState([]);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [currentSession, setCurrentSession] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Load conversations on mount
+  // Load sessions on mount
   useEffect(() => {
-    loadConversations();
+    loadSessions();
   }, []);
 
-  // Load conversation details when selected
+  // Load current session when selected
   useEffect(() => {
-    if (currentConversationId) {
-      loadConversation(currentConversationId);
+    if (currentSessionId) {
+      loadSession(currentSessionId);
     }
-  }, [currentConversationId]);
+  }, [currentSessionId]);
 
-  const loadConversations = async () => {
+  const loadSessions = async () => {
     try {
-      const convs = await api.listConversations();
-      setConversations(convs);
+      const sessionsList = await api.listSessions();
+      setSessions(sessionsList);
+
+      // Select first session if available
+      if (sessionsList.length > 0 && !currentSessionId) {
+        setCurrentSessionId(sessionsList[0].id);
+      }
     } catch (error) {
-      console.error('Failed to load conversations:', error);
+      console.error('Failed to load sessions:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const loadConversation = async (id) => {
+  const loadSession = async (sessionId) => {
     try {
-      const conv = await api.getConversation(id);
-      setCurrentConversation(conv);
+      const session = await api.getSession(sessionId);
+      setCurrentSession(session);
     } catch (error) {
-      console.error('Failed to load conversation:', error);
+      console.error('Failed to load session:', error);
     }
   };
 
-  const handleNewConversation = async () => {
+  const handleNewSession = async () => {
     try {
-      const newConv = await api.createConversation();
-      setConversations([
-        { id: newConv.id, created_at: newConv.created_at, message_count: 0 },
-        ...conversations,
-      ]);
-      setCurrentConversationId(newConv.id);
+      const session = await api.createSession();
+      setSessions([session, ...sessions]);
+      setCurrentSessionId(session.id);
+      setCurrentSession(session);
     } catch (error) {
-      console.error('Failed to create conversation:', error);
+      console.error('Failed to create session:', error);
+      alert('Failed to create new session. Please try again.');
     }
   };
 
-  const handleSelectConversation = (id) => {
-    setCurrentConversationId(id);
+  const handleSelectSession = (sessionId) => {
+    setCurrentSessionId(sessionId);
   };
 
-  const handleSendMessage = async (content) => {
-    if (!currentConversationId) return;
+  const handleAction = async (action, data) => {
+    if (!currentSessionId) return;
 
-    setIsLoading(true);
     try {
-      // Optimistically add user message to UI
-      const userMessage = { role: 'user', content };
-      setCurrentConversation((prev) => ({
-        ...prev,
-        messages: [...prev.messages, userMessage],
-      }));
+      let result;
 
-      // Create a partial assistant message that will be updated progressively
-      const assistantMessage = {
-        role: 'assistant',
-        stage1: null,
-        stage2: null,
-        stage3: null,
-        metadata: null,
-        loading: {
-          stage1: false,
-          stage2: false,
-          stage3: false,
-        },
-      };
+      switch (action) {
+        case 'initialize':
+          result = await api.initializePrompt(currentSessionId, data.mode, data);
+          await loadSession(currentSessionId);
+          await loadSessions(); // Refresh session list
+          return result;
 
-      // Add the partial assistant message
-      setCurrentConversation((prev) => ({
-        ...prev,
-        messages: [...prev.messages, assistantMessage],
-      }));
+        case 'test':
+          result = await api.testPrompt(currentSessionId, data.models, data.test_input);
+          await loadSession(currentSessionId);
+          return result;
 
-      // Send message with streaming
-      await api.sendMessageStream(currentConversationId, content, (eventType, event) => {
-        switch (eventType) {
-          case 'stage1_start':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.loading.stage1 = true;
-              return { ...prev, messages };
-            });
-            break;
+        case 'feedback':
+          result = await api.submitFeedback(currentSessionId, data.model, data.rating, data.feedback);
+          await loadSession(currentSessionId);
+          return result;
 
-          case 'stage1_complete':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.stage1 = event.data;
-              lastMsg.loading.stage1 = false;
-              return { ...prev, messages };
-            });
-            break;
+        case 'suggest':
+          result = await api.generateSuggestions(currentSessionId, data.models);
+          await loadSession(currentSessionId);
+          return result;
 
-          case 'stage2_start':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.loading.stage2 = true;
-              return { ...prev, messages };
-            });
-            break;
+        case 'merge':
+          result = await api.mergeSuggestions(currentSessionId, data.userPreference);
+          return result;
 
-          case 'stage2_complete':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.stage2 = event.data;
-              lastMsg.metadata = event.metadata;
-              lastMsg.loading.stage2 = false;
-              return { ...prev, messages };
-            });
-            break;
+        case 'iterate':
+          result = await api.createIteration(
+            currentSessionId,
+            data.prompt,
+            data.change_rationale,
+            data.user_decision
+          );
+          await loadSession(currentSessionId);
+          await loadSessions(); // Refresh session list
+          return result;
 
-          case 'stage3_start':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.loading.stage3 = true;
-              return { ...prev, messages };
-            });
-            break;
-
-          case 'stage3_complete':
-            setCurrentConversation((prev) => {
-              const messages = [...prev.messages];
-              const lastMsg = messages[messages.length - 1];
-              lastMsg.stage3 = event.data;
-              lastMsg.loading.stage3 = false;
-              return { ...prev, messages };
-            });
-            break;
-
-          case 'title_complete':
-            // Reload conversations to get updated title
-            loadConversations();
-            break;
-
-          case 'complete':
-            // Stream complete, reload conversations list
-            loadConversations();
-            setIsLoading(false);
-            break;
-
-          case 'error':
-            console.error('Stream error:', event.message);
-            setIsLoading(false);
-            break;
-
-          default:
-            console.log('Unknown event type:', eventType);
-        }
-      });
+        default:
+          console.warn('Unknown action:', action);
+      }
     } catch (error) {
-      console.error('Failed to send message:', error);
-      // Remove optimistic messages on error
-      setCurrentConversation((prev) => ({
-        ...prev,
-        messages: prev.messages.slice(0, -2),
-      }));
-      setIsLoading(false);
+      console.error(`Action ${action} failed:`, error);
+      throw error;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="app">
+        <div className="loading">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="app">
       <Sidebar
-        conversations={conversations}
-        currentConversationId={currentConversationId}
-        onSelectConversation={handleSelectConversation}
-        onNewConversation={handleNewConversation}
+        sessions={sessions}
+        currentSessionId={currentSessionId}
+        onSelectSession={handleSelectSession}
+        onNewSession={handleNewSession}
       />
-      <ChatInterface
-        conversation={currentConversation}
-        onSendMessage={handleSendMessage}
-        isLoading={isLoading}
-      />
+      <main className="main-content">
+        {currentSession ? (
+          <IterationView
+            session={currentSession}
+            onAction={handleAction}
+          />
+        ) : (
+          <div className="empty-state">
+            <h2>Welcome to Prompt Optimizer</h2>
+            <p>Create a new session to start optimizing your prompts.</p>
+            <button className="create-session-btn" onClick={handleNewSession}>
+              Create New Session
+            </button>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

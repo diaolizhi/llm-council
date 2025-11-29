@@ -1,115 +1,187 @@
 /**
- * API client for the LLM Council backend.
+ * API client for the Prompt Optimizer backend.
  */
 
 const API_BASE = 'http://localhost:8001';
 
 export const api = {
   /**
-   * List all conversations.
+   * List all optimization sessions.
    */
-  async listConversations() {
-    const response = await fetch(`${API_BASE}/api/conversations`);
+  async listSessions() {
+    const response = await fetch(`${API_BASE}/api/sessions`);
     if (!response.ok) {
-      throw new Error('Failed to list conversations');
+      throw new Error('Failed to list sessions');
     }
     return response.json();
   },
 
   /**
-   * Create a new conversation.
+   * Create a new optimization session.
    */
-  async createConversation() {
-    const response = await fetch(`${API_BASE}/api/conversations`, {
+  async createSession(title = 'New Optimization Session', objective = null) {
+    const response = await fetch(`${API_BASE}/api/sessions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ title, objective }),
     });
     if (!response.ok) {
-      throw new Error('Failed to create conversation');
+      throw new Error('Failed to create session');
     }
     return response.json();
   },
 
   /**
-   * Get a specific conversation.
+   * Get a specific session.
    */
-  async getConversation(conversationId) {
-    const response = await fetch(
-      `${API_BASE}/api/conversations/${conversationId}`
-    );
+  async getSession(sessionId) {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}`);
     if (!response.ok) {
-      throw new Error('Failed to get conversation');
+      throw new Error('Failed to get session');
     }
     return response.json();
   },
 
   /**
-   * Send a message in a conversation.
+   * Initialize a prompt (first iteration).
    */
-  async sendMessage(conversationId, content) {
-    const response = await fetch(
-      `${API_BASE}/api/conversations/${conversationId}/message`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content }),
-      }
-    );
+  async initializePrompt(sessionId, mode, data) {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/initialize`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ mode, ...data }),
+    });
     if (!response.ok) {
-      throw new Error('Failed to send message');
+      throw new Error('Failed to initialize prompt');
     }
     return response.json();
   },
 
   /**
-   * Send a message and receive streaming updates.
-   * @param {string} conversationId - The conversation ID
-   * @param {string} content - The message content
-   * @param {function} onEvent - Callback function for each event: (eventType, data) => void
-   * @returns {Promise<void>}
+   * Test a prompt with models.
    */
-  async sendMessageStream(conversationId, content, onEvent) {
-    const response = await fetch(
-      `${API_BASE}/api/conversations/${conversationId}/message/stream`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ content }),
-      }
-    );
-
+  async testPrompt(sessionId, models = null, testInput = null) {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/test`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ models, test_input: testInput }),
+    });
     if (!response.ok) {
-      throw new Error('Failed to send message');
+      throw new Error('Failed to test prompt');
     }
+    return response.json();
+  },
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          try {
-            const event = JSON.parse(data);
-            onEvent(event.type, event);
-          } catch (e) {
-            console.error('Failed to parse SSE event:', e);
-          }
-        }
-      }
+  /**
+   * Submit feedback for a test result.
+   */
+  async submitFeedback(sessionId, model, rating = null, feedback = null) {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/feedback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ model, rating, feedback }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to submit feedback');
     }
+    return response.json();
+  },
+
+  /**
+   * Generate improvement suggestions.
+   */
+  async generateSuggestions(sessionId, models = null) {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/suggest`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ models }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to generate suggestions');
+    }
+    return response.json();
+  },
+
+  /**
+   * Merge improvement suggestions.
+   */
+  async mergeSuggestions(sessionId, userPreference = null) {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/merge`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ user_preference: userPreference }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to merge suggestions');
+    }
+    return response.json();
+  },
+
+  /**
+   * Create a new iteration.
+   */
+  async createIteration(sessionId, prompt, changeRationale, userDecision = null) {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/iterate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt,
+        change_rationale: changeRationale,
+        user_decision: userDecision,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to create iteration');
+    }
+    return response.json();
+  },
+
+  /**
+   * Get session metrics.
+   */
+  async getMetrics(sessionId) {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/metrics`);
+    if (!response.ok) {
+      throw new Error('Failed to get metrics');
+    }
+    return response.json();
+  },
+
+  /**
+   * Get version history.
+   */
+  async getVersionHistory(sessionId) {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/versions`);
+    if (!response.ok) {
+      throw new Error('Failed to get version history');
+    }
+    return response.json();
+  },
+
+  /**
+   * Export session.
+   */
+  async exportSession(sessionId, format = 'json') {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/export?format=${format}`, {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to export session');
+    }
+    return response.json();
   },
 };

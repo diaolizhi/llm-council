@@ -1,18 +1,23 @@
-"""FastAPI backend for LLM Council."""
+"""FastAPI backend for Prompt Optimizer."""
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import uuid
-import json
-import asyncio
 
 from . import storage
-from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
+from .optimizer import (
+    generate_initial_prompt,
+    test_prompt_with_models,
+    collect_improvement_suggestions,
+    merge_suggestions,
+    calculate_iteration_metrics,
+    create_version_diff
+)
+from .config import TEST_MODELS
 
-app = FastAPI(title="LLM Council API")
+app = FastAPI(title="Prompt Optimizer API")
 
 # Enable CORS for local development
 app.add_middleware(
@@ -24,174 +29,402 @@ app.add_middleware(
 )
 
 
-class CreateConversationRequest(BaseModel):
-    """Request to create a new conversation."""
-    pass
+# Request/Response Models
+class CreateSessionRequest(BaseModel):
+    """Request to create a new optimization session."""
+    title: Optional[str] = "New Optimization Session"
+    objective: Optional[str] = None
 
 
-class SendMessageRequest(BaseModel):
-    """Request to send a message in a conversation."""
-    content: str
+class InitializePromptRequest(BaseModel):
+    """Request to initialize a prompt (either generate or use provided)."""
+    mode: str  # "generate" or "provide"
+    objective: Optional[str] = None  # For generate mode
+    prompt: Optional[str] = None  # For provide mode
 
 
-class ConversationMetadata(BaseModel):
-    """Conversation metadata for list view."""
+class TestPromptRequest(BaseModel):
+    """Request to test a prompt with models."""
+    models: Optional[List[str]] = None
+    test_input: Optional[str] = None
+
+
+class SubmitFeedbackRequest(BaseModel):
+    """Request to submit feedback for a test result."""
+    model: str
+    rating: Optional[int] = None
+    feedback: Optional[str] = None
+
+
+class GenerateSuggestionsRequest(BaseModel):
+    """Request to generate improvement suggestions."""
+    models: Optional[List[str]] = None
+
+
+class CreateIterationRequest(BaseModel):
+    """Request to create a new iteration."""
+    prompt: str
+    change_rationale: str
+    user_decision: Optional[str] = None
+
+
+class MergeSuggestionsRequest(BaseModel):
+    """Request to merge suggestions into improved prompt."""
+    user_preference: Optional[str] = None
+
+
+class SessionMetadata(BaseModel):
+    """Session metadata for list view."""
     id: str
     created_at: str
     title: str
-    message_count: int
+    iteration_count: int
+    last_modified: str
 
 
-class Conversation(BaseModel):
-    """Full conversation with all messages."""
+class Session(BaseModel):
+    """Full session with all iterations."""
     id: str
     created_at: str
     title: str
-    messages: List[Dict[str, Any]]
+    objective: Optional[str]
+    iterations: List[Dict[str, Any]]
 
 
 @app.get("/")
 async def root():
     """Health check endpoint."""
-    return {"status": "ok", "service": "LLM Council API"}
+    return {"status": "ok", "service": "Prompt Optimizer API"}
 
 
-@app.get("/api/conversations", response_model=List[ConversationMetadata])
-async def list_conversations():
-    """List all conversations (metadata only)."""
-    return storage.list_conversations()
+@app.get("/api/sessions", response_model=List[SessionMetadata])
+async def list_sessions():
+    """List all optimization sessions (metadata only)."""
+    return storage.list_sessions()
 
 
-@app.post("/api/conversations", response_model=Conversation)
-async def create_conversation(request: CreateConversationRequest):
-    """Create a new conversation."""
-    conversation_id = str(uuid.uuid4())
-    conversation = storage.create_conversation(conversation_id)
-    return conversation
+@app.post("/api/sessions", response_model=Session)
+async def create_session(request: CreateSessionRequest):
+    """Create a new optimization session."""
+    session_id = str(uuid.uuid4())
+    session = storage.create_session(
+        session_id,
+        title=request.title or "New Optimization Session",
+        objective=request.objective
+    )
+    return session
 
 
-@app.get("/api/conversations/{conversation_id}", response_model=Conversation)
-async def get_conversation(conversation_id: str):
-    """Get a specific conversation with all its messages."""
-    conversation = storage.get_conversation(conversation_id)
-    if conversation is None:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-    return conversation
+@app.get("/api/sessions/{session_id}", response_model=Session)
+async def get_session(session_id: str):
+    """Get a specific session with all its iterations."""
+    session = storage.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return session
 
 
-@app.post("/api/conversations/{conversation_id}/message")
-async def send_message(conversation_id: str, request: SendMessageRequest):
+@app.post("/api/sessions/{session_id}/initialize")
+async def initialize_prompt(session_id: str, request: InitializePromptRequest):
     """
-    Send a message and run the 3-stage council process.
-    Returns the complete response with all stages.
+    Initialize the first prompt for a session.
+    Either generate from objective or use provided prompt.
     """
-    # Check if conversation exists
-    conversation = storage.get_conversation(conversation_id)
-    if conversation is None:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+    # Check if session exists
+    session = storage.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
 
-    # Check if this is the first message
-    is_first_message = len(conversation["messages"]) == 0
+    # Check if already initialized
+    if session.get("iterations"):
+        raise HTTPException(status_code=400, detail="Session already has iterations")
 
-    # Add user message
-    storage.add_user_message(conversation_id, request.content)
+    # Generate or use provided prompt
+    if request.mode == "generate":
+        if not request.objective:
+            raise HTTPException(status_code=400, detail="Objective required for generate mode")
+        prompt = await generate_initial_prompt(request.objective)
+        change_rationale = f"Generated from objective: {request.objective}"
+    elif request.mode == "provide":
+        if not request.prompt:
+            raise HTTPException(status_code=400, detail="Prompt required for provide mode")
+        prompt = request.prompt
+        change_rationale = "Initial prompt provided by user"
+    else:
+        raise HTTPException(status_code=400, detail="Mode must be 'generate' or 'provide'")
 
-    # If this is the first message, generate a title
-    if is_first_message:
-        title = await generate_conversation_title(request.content)
-        storage.update_conversation_title(conversation_id, title)
-
-    # Run the 3-stage council process
-    stage1_results, stage2_results, stage3_result, metadata = await run_full_council(
-        request.content
+    # Create first iteration
+    session = storage.add_iteration(
+        session_id,
+        prompt=prompt,
+        change_rationale=change_rationale
     )
 
-    # Add assistant message with all stages
-    storage.add_assistant_message(
-        conversation_id,
-        stage1_results,
-        stage2_results,
-        stage3_result
-    )
-
-    # Return the complete response with metadata
     return {
-        "stage1": stage1_results,
-        "stage2": stage2_results,
-        "stage3": stage3_result,
-        "metadata": metadata
+        "prompt": prompt,
+        "version": 1,
+        "session": session
     }
 
 
-@app.post("/api/conversations/{conversation_id}/message/stream")
-async def send_message_stream(conversation_id: str, request: SendMessageRequest):
+@app.post("/api/sessions/{session_id}/test")
+async def test_prompt(session_id: str, request: TestPromptRequest):
     """
-    Send a message and stream the 3-stage council process.
-    Returns Server-Sent Events as each stage completes.
+    Test the current prompt with selected models.
     """
-    # Check if conversation exists
-    conversation = storage.get_conversation(conversation_id)
-    if conversation is None:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+    # Get the latest iteration
+    iteration = storage.get_latest_iteration(session_id)
+    if iteration is None:
+        raise HTTPException(status_code=404, detail="No iterations found. Initialize prompt first.")
 
-    # Check if this is the first message
-    is_first_message = len(conversation["messages"]) == 0
+    # Use provided models or default to TEST_MODELS
+    models = request.models if request.models else TEST_MODELS
 
-    async def event_generator():
-        try:
-            # Add user message
-            storage.add_user_message(conversation_id, request.content)
-
-            # Start title generation in parallel (don't await yet)
-            title_task = None
-            if is_first_message:
-                title_task = asyncio.create_task(generate_conversation_title(request.content))
-
-            # Stage 1: Collect responses
-            yield f"data: {json.dumps({'type': 'stage1_start'})}\n\n"
-            stage1_results = await stage1_collect_responses(request.content)
-            yield f"data: {json.dumps({'type': 'stage1_complete', 'data': stage1_results})}\n\n"
-
-            # Stage 2: Collect rankings
-            yield f"data: {json.dumps({'type': 'stage2_start'})}\n\n"
-            stage2_results, label_to_model = await stage2_collect_rankings(request.content, stage1_results)
-            aggregate_rankings = calculate_aggregate_rankings(stage2_results, label_to_model)
-            yield f"data: {json.dumps({'type': 'stage2_complete', 'data': stage2_results, 'metadata': {'label_to_model': label_to_model, 'aggregate_rankings': aggregate_rankings}})}\n\n"
-
-            # Stage 3: Synthesize final answer
-            yield f"data: {json.dumps({'type': 'stage3_start'})}\n\n"
-            stage3_result = await stage3_synthesize_final(request.content, stage1_results, stage2_results)
-            yield f"data: {json.dumps({'type': 'stage3_complete', 'data': stage3_result})}\n\n"
-
-            # Wait for title generation if it was started
-            if title_task:
-                title = await title_task
-                storage.update_conversation_title(conversation_id, title)
-                yield f"data: {json.dumps({'type': 'title_complete', 'data': {'title': title}})}\n\n"
-
-            # Save complete assistant message
-            storage.add_assistant_message(
-                conversation_id,
-                stage1_results,
-                stage2_results,
-                stage3_result
-            )
-
-            # Send completion event
-            yield f"data: {json.dumps({'type': 'complete'})}\n\n"
-
-        except Exception as e:
-            # Send error event
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
-
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-        }
+    # Test the prompt
+    test_results = await test_prompt_with_models(
+        iteration["prompt"],
+        models=models,
+        test_input=request.test_input
     )
+
+    # Update the iteration with test results
+    storage.update_iteration_test_results(
+        session_id,
+        iteration["version"],
+        test_results
+    )
+
+    return {
+        "version": iteration["version"],
+        "test_results": test_results
+    }
+
+
+@app.post("/api/sessions/{session_id}/feedback")
+async def submit_feedback(session_id: str, request: SubmitFeedbackRequest):
+    """
+    Submit rating and/or feedback for a specific test result.
+    """
+    # Get the latest iteration
+    iteration = storage.get_latest_iteration(session_id)
+    if iteration is None:
+        raise HTTPException(status_code=404, detail="No iterations found")
+
+    # Update the feedback
+    storage.update_iteration_feedback(
+        session_id,
+        iteration["version"],
+        request.model,
+        rating=request.rating,
+        feedback=request.feedback
+    )
+
+    # Get updated iteration to return current state
+    updated_iteration = storage.get_latest_iteration(session_id)
+
+    return {
+        "version": updated_iteration["version"],
+        "test_results": updated_iteration["test_results"]
+    }
+
+
+@app.post("/api/sessions/{session_id}/suggest")
+async def generate_suggestions(session_id: str, request: GenerateSuggestionsRequest):
+    """
+    Generate improvement suggestions based on test results and feedback.
+    """
+    # Get the latest iteration
+    iteration = storage.get_latest_iteration(session_id)
+    if iteration is None:
+        raise HTTPException(status_code=404, detail="No iterations found")
+
+    # Check if there are test results
+    if not iteration.get("test_results"):
+        raise HTTPException(status_code=400, detail="No test results available. Run tests first.")
+
+    # Collect suggestions
+    suggestions = await collect_improvement_suggestions(
+        iteration["prompt"],
+        iteration["test_results"],
+        models=request.models
+    )
+
+    # Update the iteration with suggestions
+    storage.update_iteration_suggestions(
+        session_id,
+        iteration["version"],
+        suggestions
+    )
+
+    return {
+        "version": iteration["version"],
+        "suggestions": suggestions
+    }
+
+
+@app.post("/api/sessions/{session_id}/merge")
+async def merge_improvement_suggestions(session_id: str, request: MergeSuggestionsRequest):
+    """
+    Merge improvement suggestions into a single improved prompt.
+    """
+    # Get the latest iteration
+    iteration = storage.get_latest_iteration(session_id)
+    if iteration is None:
+        raise HTTPException(status_code=404, detail="No iterations found")
+
+    # Check if there are suggestions
+    suggestions = iteration.get("suggestions", [])
+    if not suggestions:
+        raise HTTPException(status_code=400, detail="No suggestions available. Generate suggestions first.")
+
+    # Merge suggestions
+    improved_prompt = await merge_suggestions(
+        iteration["prompt"],
+        suggestions,
+        user_preference=request.user_preference
+    )
+
+    return {
+        "improved_prompt": improved_prompt,
+        "original_prompt": iteration["prompt"]
+    }
+
+
+@app.post("/api/sessions/{session_id}/iterate")
+async def create_new_iteration(session_id: str, request: CreateIterationRequest):
+    """
+    Create a new iteration with an improved prompt.
+    """
+    # Get current session
+    session = storage.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Create new iteration
+    session = storage.add_iteration(
+        session_id,
+        prompt=request.prompt,
+        change_rationale=request.change_rationale,
+        user_decision=request.user_decision
+    )
+
+    # Get the new iteration
+    new_iteration = session["iterations"][-1]
+
+    return {
+        "version": new_iteration["version"],
+        "iteration": new_iteration,
+        "session": session
+    }
+
+
+@app.get("/api/sessions/{session_id}/metrics")
+async def get_session_metrics(session_id: str):
+    """
+    Get metrics for all iterations in a session.
+    """
+    session = storage.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Calculate metrics for each iteration
+    metrics = []
+    for iteration in session.get("iterations", []):
+        iteration_metrics = calculate_iteration_metrics(iteration)
+        metrics.append({
+            "version": iteration["version"],
+            "metrics": iteration_metrics
+        })
+
+    return {
+        "session_id": session_id,
+        "total_iterations": len(session.get("iterations", [])),
+        "iteration_metrics": metrics
+    }
+
+
+@app.get("/api/sessions/{session_id}/versions")
+async def get_version_history(session_id: str):
+    """
+    Get version history with diffs between consecutive versions.
+    """
+    session = storage.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    iterations = session.get("iterations", [])
+    if not iterations:
+        return {"versions": []}
+
+    # Build version history with diffs
+    versions = []
+    for i, iteration in enumerate(iterations):
+        version_info = {
+            "version": iteration["version"],
+            "timestamp": iteration["timestamp"],
+            "change_rationale": iteration["change_rationale"],
+            "prompt": iteration["prompt"],
+            "metrics": calculate_iteration_metrics(iteration)
+        }
+
+        # Add diff if not the first version
+        if i > 0:
+            prev_iteration = iterations[i - 1]
+            diff = create_version_diff(prev_iteration["prompt"], iteration["prompt"])
+            version_info["diff"] = diff
+
+        versions.append(version_info)
+
+    return {"versions": versions}
+
+
+@app.post("/api/sessions/{session_id}/export")
+async def export_session(session_id: str, format: str = "json"):
+    """
+    Export the session in various formats.
+    """
+    session = storage.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if format == "json":
+        return session
+    elif format == "text":
+        # Export as plain text
+        latest_iteration = session["iterations"][-1] if session.get("iterations") else None
+        if latest_iteration:
+            return {
+                "format": "text",
+                "content": latest_iteration["prompt"]
+            }
+        else:
+            return {
+                "format": "text",
+                "content": ""
+            }
+    elif format == "markdown":
+        # Export as markdown with history
+        content = f"# {session['title']}\n\n"
+        if session.get("objective"):
+            content += f"**Objective:** {session['objective']}\n\n"
+
+        content += "## Version History\n\n"
+        for iteration in session.get("iterations", []):
+            content += f"### Version {iteration['version']}\n"
+            content += f"**Rationale:** {iteration['change_rationale']}\n\n"
+            content += f"```\n{iteration['prompt']}\n```\n\n"
+
+            # Add metrics if available
+            metrics = calculate_iteration_metrics(iteration)
+            if metrics.get("avg_rating"):
+                content += f"**Average Rating:** {metrics['avg_rating']}/5\n\n"
+
+        return {
+            "format": "markdown",
+            "content": content
+        }
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported format: {format}")
 
 
 if __name__ == "__main__":

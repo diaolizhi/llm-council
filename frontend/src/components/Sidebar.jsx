@@ -2,37 +2,37 @@ import { useState, useEffect } from 'react';
 import './Sidebar.css';
 
 export default function Sidebar({
-  conversations,
-  currentConversationId,
-  onSelectConversation,
-  onNewConversation,
+  sessions,
+  currentSessionId,
+  onSelectSession,
+  onNewSession,
 }) {
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <h1>LLM Council</h1>
-        <button className="new-conversation-btn" onClick={onNewConversation}>
-          + New Conversation
+        <h1>Prompt Optimizer</h1>
+        <button className="new-conversation-btn" onClick={onNewSession}>
+          + New Session
         </button>
       </div>
 
       <div className="conversation-list">
-        {conversations.length === 0 ? (
-          <div className="no-conversations">No conversations yet</div>
+        {sessions.length === 0 ? (
+          <div className="no-conversations">No sessions yet</div>
         ) : (
-          conversations.map((conv) => (
+          sessions.map((session) => (
             <div
-              key={conv.id}
+              key={session.id}
               className={`conversation-item ${
-                conv.id === currentConversationId ? 'active' : ''
+                session.id === currentSessionId ? 'active' : ''
               }`}
-              onClick={() => onSelectConversation(conv.id)}
+              onClick={() => onSelectSession(session.id)}
             >
               <div className="conversation-title">
-                {conv.title || 'New Conversation'}
+                {session.title || 'New Session'}
               </div>
               <div className="conversation-meta">
-                {conv.message_count} messages
+                {session.iteration_count} {session.iteration_count === 1 ? 'iteration' : 'iterations'}
               </div>
             </div>
           ))

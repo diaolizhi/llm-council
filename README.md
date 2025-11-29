@@ -1,18 +1,48 @@
-# LLM Council
+# Prompt Optimizer
 
-![llmcouncil](header.jpg)
+![prompt-optimizer](header.jpg)
 
-The idea of this repo is that instead of asking a question to your favorite LLM provider (e.g. OpenAI GPT 5.1, Google Gemini 3.0 Pro, Anthropic Claude Sonnet 4.5, xAI Grok 4, eg.c), you can group them into your "LLM Council". This repo is a simple, local web app that essentially looks like ChatGPT except it uses OpenRouter to send your query to multiple LLMs, it then asks them to review and rank each other's work, and finally a Chairman LLM produces the final response.
+**Iteratively improve your prompts with multi-LLM feedback and suggestions.**
 
-In a bit more detail, here is what happens when you submit a query:
+Prompt Optimizer is a local web application that helps you craft better prompts through systematic testing and refinement. Instead of trial-and-error, you get a structured workflow:
 
-1. **Stage 1: First opinions**. The user query is given to all LLMs individually, and the responses are collected. The individual responses are shown in a "tab view", so that the user can inspect them all one by one.
-2. **Stage 2: Review**. Each individual LLM is given the responses of the other LLMs. Under the hood, the LLM identities are anonymized so that the LLM can't play favorites when judging their outputs. The LLM is asked to rank them in accuracy and insight.
-3. **Stage 3: Final response**. The designated Chairman of the LLM Council takes all of the model's responses and compiles them into a single final answer that is presented to the user.
+1. **Generate or provide** an initial prompt
+2. **Test** it across multiple LLMs simultaneously
+3. **Rate and provide feedback** on each output
+4. **Generate improvement suggestions** from all tested LLMs
+5. **Accept suggestions** and create a new prompt version
+6. **Iterate** until you have an optimized prompt
 
-## Vibe Code Alert
+The tool uses OpenRouter to access dozens of LLMs, allowing you to see how different models respond to the same prompt and collaboratively improve it based on their collective insights.
 
-This project was 99% vibe coded as a fun Saturday hack because I wanted to explore and evaluate a number of LLMs side by side in the process of [reading books together with LLMs](https://x.com/karpathy/status/1990577951671509438). It's nice and useful to see multiple responses side by side, and also the cross-opinions of all LLMs on each other's outputs. I'm not going to support it in any way, it's provided here as is for other people's inspiration and I don't intend to improve it. Code is ephemeral now and libraries are over, ask your LLM to change it in whatever way you like.
+## How It Works
+
+### The Optimization Loop
+
+1. **Initialization**: Either describe your objective (e.g., "Create a code review prompt") and let an LLM generate the initial prompt, or paste an existing prompt to refine.
+
+2. **Testing**: Your prompt is sent to multiple LLMs in parallel. Optionally provide test input (e.g., a code snippet, question, or scenario) to see how the prompt performs in context. You can test with 3-10 models simultaneously.
+
+3. **Feedback Collection**: Rate each output (1-5 stars) and optionally provide detailed feedback on what works and what doesn't.
+
+4. **Improvement Suggestions**: Based on your feedback, all tested LLMs analyze the prompt and suggest specific improvements. Each model brings a different perspective.
+
+5. **Merge & Iterate**: Review individual suggestions or merge them into a single improved prompt. Accept the changes to create a new version and continue the cycle.
+
+6. **Version History**: Track all iterations with diffs, rationales, and performance metrics. Compare versions and roll back if needed.
+
+## Key Features
+
+- **Multi-LLM Testing**: Test prompts with any OpenRouter-supported models in parallel
+- **Structured Feedback**: Star ratings + text feedback for quantitative and qualitative analysis
+- **Collaborative Improvement**: Get suggestions from multiple LLMs, each noticing different issues
+- **Version Control**: Full history with diffs, change rationales, and performance tracking
+- **Iterative Workflow**: Unlimited optimization cycles until you're satisfied
+- **Export**: Save optimized prompts as text, markdown, or JSON with full metadata
+
+## Origin Note
+
+This is a complete transformation of the original "LLM Council" project. The core infrastructure (parallel LLM querying via OpenRouter) proved more valuable for prompt optimization than Q&A deliberation. The codebase has been redesigned from the ground up for this new purpose while preserving the battle-tested API integration layer.
 
 ## Setup
 
@@ -44,17 +74,21 @@ Get your API key at [openrouter.ai](https://openrouter.ai/). Make sure to purcha
 
 ### 3. Configure Models (Optional)
 
-Edit `backend/config.py` to customize the council:
+Edit `backend/config.py` to customize test models:
 
 ```python
-COUNCIL_MODELS = [
-    "openai/gpt-5.1",
-    "google/gemini-3-pro-preview",
-    "anthropic/claude-sonnet-4.5",
-    "x-ai/grok-4",
+# Models used to test your prompts
+TEST_MODELS = [
+    "x-ai/grok-4.1-fast:free",
+    "tngtech/deepseek-r1t2-chimera:free",
+    "kwaipilot/kat-coder-pro:free",
 ]
 
-CHAIRMAN_MODEL = "google/gemini-3-pro-preview"
+# Model used to merge improvement suggestions
+SYNTHESIZER_MODEL = "x-ai/grok-4.1-fast:free"
+
+# Model used to generate initial prompts from objectives
+GENERATOR_MODEL = "google/gemini-2.0-flash-exp:free"
 ```
 
 ## Running the Application
@@ -83,5 +117,41 @@ Then open http://localhost:5173 in your browser.
 
 - **Backend:** FastAPI (Python 3.10+), async httpx, OpenRouter API
 - **Frontend:** React + Vite, react-markdown for rendering
-- **Storage:** JSON files in `data/conversations/`
+- **Storage:** JSON files in `data/sessions/` (iteration-based schema)
 - **Package Management:** uv for Python, npm for JavaScript
+
+## Usage Tips
+
+1. **Start Simple**: Begin with a basic prompt, get baseline feedback, then iterate
+2. **Use Specific Feedback**: The more specific your ratings and comments, the better the suggestions
+3. **Test Diverse Models**: Different model architectures notice different issues
+4. **Compare Versions**: Use the version history to see what changes improved performance
+5. **Export Final Prompts**: Save your optimized prompts for reuse in production
+
+## Migration from v1.x (LLM Council)
+
+If you were using the original LLM Council system:
+
+- Old conversation data is archived in `data/archive/council-conversations/`
+- The new system uses a completely different data model (iterations vs messages)
+- Legacy API endpoints and components are preserved in `*_legacy.py` files
+- To roll back: `git checkout v1-council-final` (tag not yet created)
+
+## Project Structure
+
+```
+backend/
+  ├── optimizer.py      # Core optimization logic
+  ├── storage.py        # Iteration-based data model
+  ├── config.py         # Model configuration
+  └── main.py           # FastAPI endpoints
+
+frontend/src/
+  ├── components/
+  │   ├── PromptEditor.jsx          # Prompt editing
+  │   ├── TestResults.jsx           # Output viewing & rating
+  │   ├── OutputRating.jsx          # Star rating + feedback
+  │   ├── SuggestionAggregator.jsx  # Improvement suggestions
+  │   └── IterationView.jsx         # Main workflow orchestration
+  └── App.jsx           # Session management
+```
