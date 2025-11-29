@@ -1,0 +1,218 @@
+export const TRANSLATIONS = {
+  en: {
+    'common.loading': 'Loading...',
+    'app.empty.title': 'Welcome to Prompt Optimizer',
+    'app.empty.description': 'Create a new session to start optimizing your prompts.',
+    'app.empty.button': 'Create New Session',
+
+    'sidebar.title': 'Prompt Optimizer',
+    'sidebar.newSession': '+ New Prompt',
+    'sidebar.noSessions': 'No sessions yet',
+    'sidebar.iterationSingular': '{{count}} iteration',
+    'sidebar.iterationPlural': '{{count}} iterations',
+    'sidebar.language': 'Language',
+    'sidebar.defaultSessionTitle': 'New Session',
+
+    'iteration.init.title': 'Initialize Your Prompt',
+    'iteration.init.generateMode': 'Generate from Objective',
+    'iteration.init.provideMode': 'Provide Existing Prompt',
+    'iteration.init.describeLabel': 'Describe your objective:',
+    'iteration.init.provideLabel': 'Paste your prompt:',
+    'iteration.init.objectivePlaceholder':
+      'E.g., Create a comprehensive code review prompt that checks for bugs, style, and best practices...',
+    'iteration.init.initButton': 'Initialize Prompt',
+    'iteration.init.initializing': 'Initializing...',
+    'iteration.alert.initFail': 'Failed to initialize prompt. Please try again.',
+    'iteration.alert.testFail': 'Failed to test prompt. Please try again.',
+    'iteration.alert.suggestFail': 'Failed to generate suggestions. Please try again.',
+    'iteration.alert.iterateFail': 'Failed to create new iteration. Please try again.',
+    'iteration.rationale.prompt': 'Please provide a brief rationale for this change:',
+    'iteration.rationale.default': 'Applied improvement suggestions',
+
+    'iteration.header.version': 'Version {{version}}',
+
+    'iteration.test.stepTitle': 'Step 1: Test Your Prompt',
+    'iteration.test.stepDescription': 'Test this prompt with multiple LLMs to see how they respond.',
+    'iteration.test.button': 'Test Prompt with LLMs',
+    'iteration.test.testInputLabel': 'Test Input (Optional):',
+    'iteration.test.placeholder':
+      "Enter a test question or input to use with your prompt. Leave empty to test the prompt as-is. Example: 'Review this code: function add(a, b) { return a + b; }'",
+    'iteration.test.run': 'Run Test',
+    'iteration.test.cancel': 'Cancel',
+    'iteration.test.testing': 'Testing...',
+
+    'iteration.suggestions.stepTitle': 'Step 2: Generate Improvement Suggestions',
+    'iteration.suggestions.stepDescription':
+      'Based on the test results and your feedback, get suggestions from all LLMs.',
+    'iteration.suggestions.button': 'Generate Improvement Suggestions',
+    'iteration.suggestions.generating': 'Generating Suggestions...',
+
+    'promptEditor.title': 'Prompt',
+    'promptEditor.titleWithVersion': 'Prompt (Version {{version}})',
+    'promptEditor.charCount': '{{count}} characters',
+    'promptEditor.placeholder': 'Enter your prompt here...',
+
+    'testResults.header': 'Test Results ({{count}} models)',
+    'testResults.none': 'No test results yet. Run a test to see outputs.',
+
+    'outputRating.showFeedback': '+ Add Feedback',
+    'outputRating.hideFeedback': '− Hide Feedback',
+    'outputRating.placeholder': 'Enter detailed feedback (optional)...',
+    'outputRating.quick.tooVerbose': 'Too verbose',
+    'outputRating.quick.lacksExamples': 'Lacks examples',
+    'outputRating.quick.unclearInstructions': 'Unclear instructions',
+    'outputRating.quick.goodStructure': 'Good structure',
+    'outputRating.quick.needsMoreDetail': 'Needs more detail',
+    'outputRating.ratingLabel': '{{rating}}/5',
+
+    'suggestions.header': 'Improvement Suggestions ({{count}} models)',
+    'suggestions.merge': 'Merge All Suggestions',
+    'suggestions.merging': 'Merging...',
+    'suggestions.merged': 'Merged',
+    'suggestions.preferencePlaceholder': 'Optional: What should we prioritize in the improvements?',
+    'suggestions.mergedTitle': 'Merged Improved Prompt',
+    'suggestions.viewIndividuals': '← View Individual Suggestions',
+    'suggestions.useMerged': 'Use This Improved Prompt',
+    'suggestions.useSingle': 'Use This Suggestion',
+    'suggestions.none': 'No suggestions yet. Generate suggestions first.',
+    'suggestions.mergeFail': 'Failed to merge suggestions. Please try again.',
+
+    // Legacy UI
+    'legacy.chat.welcomeTitle': 'Welcome to LLM Council',
+    'legacy.chat.welcomeDescription': 'Create a new conversation to get started',
+    'legacy.chat.emptyTitle': 'Start a conversation',
+    'legacy.chat.emptyDescription': 'Ask a question to consult the LLM Council',
+    'legacy.chat.userLabel': 'You',
+    'legacy.chat.assistantLabel': 'LLM Council',
+    'legacy.chat.stage1Loading': 'Running Stage 1: Collecting individual responses...',
+    'legacy.chat.stage2Loading': 'Running Stage 2: Peer rankings...',
+    'legacy.chat.stage3Loading': 'Running Stage 3: Final synthesis...',
+    'legacy.chat.loadingCouncil': 'Consulting the council...',
+    'legacy.chat.placeholder': 'Ask your question... (Shift+Enter for new line, Enter to send)',
+    'legacy.chat.send': 'Send',
+
+    'legacy.stage1.title': 'Stage 1: Individual Responses',
+
+    'legacy.stage2.title': 'Stage 2: Peer Rankings',
+    'legacy.stage2.rawEvaluations': 'Raw Evaluations',
+    'legacy.stage2.description':
+      'Each model evaluated all responses (anonymized as Response A, B, C, etc.) and provided rankings. Below, model names are shown in bold for readability, but the original evaluation used anonymous labels.',
+    'legacy.stage2.parsedRanking': 'Extracted Ranking:',
+    'legacy.stage2.aggregateTitle': 'Aggregate Rankings (Street Cred)',
+    'legacy.stage2.aggregateDescription':
+      'Combined results across all peer evaluations (lower score is better):',
+    'legacy.stage2.avg': 'Avg: {{value}}',
+    'legacy.stage2.votes': '({{count}} votes)',
+    'legacy.stage2.position': '#{{position}}',
+
+    'legacy.stage3.title': 'Stage 3: Final Council Answer',
+    'legacy.stage3.chairman': 'Chairman: {{model}}'
+  },
+  zh: {
+    'common.loading': '加载中...',
+    'app.empty.title': '欢迎使用提示词优化器',
+    'app.empty.description': '创建一个新的会话开始优化你的提示词。',
+    'app.empty.button': '创建新会话',
+
+    'sidebar.title': '提示词优化器',
+    'sidebar.newSession': '+ 新建提示词',
+    'sidebar.noSessions': '暂无会话',
+    'sidebar.iterationSingular': '{{count}} 次迭代',
+    'sidebar.iterationPlural': '{{count}} 次迭代',
+    'sidebar.language': '语言',
+    'sidebar.defaultSessionTitle': '新会话',
+
+    'iteration.init.title': '初始化你的提示词',
+    'iteration.init.generateMode': '根据目标生成',
+    'iteration.init.provideMode': '提供已有提示词',
+    'iteration.init.describeLabel': '描述你的目标：',
+    'iteration.init.provideLabel': '粘贴你的提示词：',
+    'iteration.init.objectivePlaceholder':
+      '例如：创建一个涵盖缺陷、风格和最佳实践检查的全面代码审查提示词...',
+    'iteration.init.initButton': '初始化提示词',
+    'iteration.init.initializing': '正在初始化...',
+    'iteration.alert.initFail': '初始化提示词失败，请重试。',
+    'iteration.alert.testFail': '测试提示词失败，请重试。',
+    'iteration.alert.suggestFail': '生成改进建议失败，请重试。',
+    'iteration.alert.iterateFail': '创建新迭代失败，请重试。',
+    'iteration.rationale.prompt': '请为此次修改提供简要原因：',
+    'iteration.rationale.default': '应用了改进建议',
+
+    'iteration.header.version': '版本 {{version}}',
+
+    'iteration.test.stepTitle': '步骤 1：测试你的提示词',
+    'iteration.test.stepDescription': '使用多个 LLM 测试此提示词，观察其表现。',
+    'iteration.test.button': '使用 LLM 测试提示词',
+    'iteration.test.testInputLabel': '测试输入（可选）：',
+    'iteration.test.placeholder':
+      "输入用于测试提示词的问题或内容。留空将直接测试提示词本身。示例：'Review this code: function add(a, b) { return a + b; }'",
+    'iteration.test.run': '运行测试',
+    'iteration.test.cancel': '取消',
+    'iteration.test.testing': '测试中...',
+
+    'iteration.suggestions.stepTitle': '步骤 2：生成改进建议',
+    'iteration.suggestions.stepDescription': '基于测试结果和你的反馈，从所有 LLM 获取改进建议。',
+    'iteration.suggestions.button': '生成改进建议',
+    'iteration.suggestions.generating': '正在生成建议...',
+
+    'promptEditor.title': '提示词',
+    'promptEditor.titleWithVersion': '提示词（版本 {{version}}）',
+    'promptEditor.charCount': '{{count}} 个字符',
+    'promptEditor.placeholder': '在这里输入你的提示词...',
+
+    'testResults.header': '测试结果（{{count}} 个模型）',
+    'testResults.none': '暂无测试结果，请先运行测试。',
+
+    'outputRating.showFeedback': '+ 添加反馈',
+    'outputRating.hideFeedback': '− 隐藏反馈',
+    'outputRating.placeholder': '输入详细反馈（可选）...',
+    'outputRating.quick.tooVerbose': '过于冗长',
+    'outputRating.quick.lacksExamples': '缺少示例',
+    'outputRating.quick.unclearInstructions': '指令不清晰',
+    'outputRating.quick.goodStructure': '结构良好',
+    'outputRating.quick.needsMoreDetail': '需要更多细节',
+    'outputRating.ratingLabel': '{{rating}}/5',
+
+    'suggestions.header': '改进建议（{{count}} 个模型）',
+    'suggestions.merge': '合并所有建议',
+    'suggestions.merging': '正在合并...',
+    'suggestions.merged': '已合并',
+    'suggestions.preferencePlaceholder': '可选：改进时需要优先关注的点？',
+    'suggestions.mergedTitle': '合并后的改进提示词',
+    'suggestions.viewIndividuals': '← 查看单个建议',
+    'suggestions.useMerged': '使用该改进提示词',
+    'suggestions.useSingle': '使用该建议',
+    'suggestions.none': '暂未有建议，请先生成建议。',
+    'suggestions.mergeFail': '合并建议失败，请重试。',
+
+    // Legacy UI
+    'legacy.chat.welcomeTitle': '欢迎来到 LLM Council',
+    'legacy.chat.welcomeDescription': '创建新的对话开始使用',
+    'legacy.chat.emptyTitle': '开始对话',
+    'legacy.chat.emptyDescription': '向 LLM Council 提问',
+    'legacy.chat.userLabel': '你',
+    'legacy.chat.assistantLabel': 'LLM Council',
+    'legacy.chat.stage1Loading': '正在运行阶段 1：收集各模型回复...',
+    'legacy.chat.stage2Loading': '正在运行阶段 2：同伴排名...',
+    'legacy.chat.stage3Loading': '正在运行阶段 3：最终汇总...',
+    'legacy.chat.loadingCouncil': '正在咨询议会...',
+    'legacy.chat.placeholder': '请输入你的问题...（Shift+Enter 换行，Enter 发送）',
+    'legacy.chat.send': '发送',
+
+    'legacy.stage1.title': '阶段 1：单独回复',
+
+    'legacy.stage2.title': '阶段 2：同伴排名',
+    'legacy.stage2.rawEvaluations': '原始评估',
+    'legacy.stage2.description':
+      '每个模型对所有匿名回复（如 Response A、B、C 等）进行评估并给出排名。下方为方便阅读显示了模型名称，原评估使用的是匿名标签。',
+    'legacy.stage2.parsedRanking': '提取的排名：',
+    'legacy.stage2.aggregateTitle': '综合排名（Street Cred）',
+    'legacy.stage2.aggregateDescription': '汇总所有评估结果（分数越低越好）：',
+    'legacy.stage2.avg': '平均: {{value}}',
+    'legacy.stage2.votes': '（{{count}} 票）',
+    'legacy.stage2.position': '#{{position}}',
+
+    'legacy.stage3.title': '阶段 3：最终议会回答',
+    'legacy.stage3.chairman': '主席：{{model}}'
+  }
+};

@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import OutputRating from './OutputRating';
+import { useI18n } from '../i18n/i18n.jsx';
 import './TestResults.css';
 
 function TestResults({ testResults, onFeedbackChange }) {
   const [activeTab, setActiveTab] = useState(0);
+  const { t } = useI18n();
 
   if (!testResults || testResults.length === 0) {
     return (
       <div className="test-results">
-        <p className="no-results">No test results yet. Run a test to see outputs.</p>
+        <p className="no-results">{t('testResults.none')}</p>
       </div>
     );
   }
@@ -29,7 +31,7 @@ function TestResults({ testResults, onFeedbackChange }) {
   return (
     <div className="test-results">
       <div className="results-header">
-        <h3>Test Results ({testResults.length} models)</h3>
+        <h3>{t('testResults.header', { count: testResults.length })}</h3>
       </div>
 
       <div className="results-tabs">

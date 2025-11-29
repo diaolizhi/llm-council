@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useI18n } from '../i18n/i18n.jsx';
 import './OutputRating.css';
 
 function OutputRating({ rating, feedback, onRatingChange, onFeedbackChange }) {
   const [expanded, setExpanded] = useState(false);
   const [currentRating, setCurrentRating] = useState(rating || 0);
   const [currentFeedback, setCurrentFeedback] = useState(feedback || '');
+  const { t } = useI18n();
 
   const handleRatingClick = (value) => {
     setCurrentRating(value);
@@ -25,11 +27,11 @@ function OutputRating({ rating, feedback, onRatingChange, onFeedbackChange }) {
   };
 
   const quickFeedbackOptions = [
-    "Too verbose",
-    "Lacks examples",
-    "Unclear instructions",
-    "Good structure",
-    "Needs more detail"
+    t('outputRating.quick.tooVerbose'),
+    t('outputRating.quick.lacksExamples'),
+    t('outputRating.quick.unclearInstructions'),
+    t('outputRating.quick.goodStructure'),
+    t('outputRating.quick.needsMoreDetail')
   ];
 
   const handleQuickFeedback = (option) => {
@@ -53,7 +55,7 @@ function OutputRating({ rating, feedback, onRatingChange, onFeedbackChange }) {
           </span>
         ))}
         {currentRating > 0 && (
-          <span className="rating-label">{currentRating}/5</span>
+          <span className="rating-label">{t('outputRating.ratingLabel', { rating: currentRating })}</span>
         )}
       </div>
 
@@ -61,7 +63,7 @@ function OutputRating({ rating, feedback, onRatingChange, onFeedbackChange }) {
         className="feedback-toggle"
         onClick={() => setExpanded(!expanded)}
       >
-        {expanded ? '− Hide Feedback' : '+ Add Feedback'}
+        {expanded ? t('outputRating.hideFeedback') : t('outputRating.showFeedback')}
       </button>
 
       {expanded && (
@@ -82,7 +84,7 @@ function OutputRating({ rating, feedback, onRatingChange, onFeedbackChange }) {
             value={currentFeedback}
             onChange={handleFeedbackChange}
             onBlur={handleFeedbackBlur}
-            placeholder="Enter detailed feedback (optional)..."
+            placeholder={t('outputRating.placeholder')}
             rows={3}
           />
         </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import PromptEditor from './PromptEditor';
 import TestResults from './TestResults';
 import SuggestionAggregator from './SuggestionAggregator';
+import { useI18n } from '../i18n/i18n.jsx';
 import './IterationView.css';
 
 function IterationView({ session, onAction }) {
@@ -13,6 +14,7 @@ function IterationView({ session, onAction }) {
   const [objective, setObjective] = useState('');
   const [testInput, setTestInput] = useState('');
   const [showTestInput, setShowTestInput] = useState(false);
+  const { t } = useI18n();
 
   const latestIteration = session?.iterations?.[session.iterations.length - 1];
   const hasIterations = session?.iterations?.length > 0;
@@ -27,7 +29,7 @@ function IterationView({ session, onAction }) {
       });
     } catch (error) {
       console.error('Error initializing:', error);
-      alert('Failed to initialize prompt. Please try again.');
+      alert(t('iteration.alert.initFail'));
     } finally {
       setIsInitializing(false);
     }
@@ -44,7 +46,7 @@ function IterationView({ session, onAction }) {
       setShowTestInput(false);
     } catch (error) {
       console.error('Error testing:', error);
-      alert('Failed to test prompt. Please try again.');
+      alert(t('iteration.alert.testFail'));
     } finally {
       setIsTesting(false);
     }
@@ -64,7 +66,7 @@ function IterationView({ session, onAction }) {
       await onAction('suggest', {});
     } catch (error) {
       console.error('Error generating suggestions:', error);
-      alert('Failed to generate suggestions. Please try again.');
+      alert(t('iteration.alert.suggestFail'));
     } finally {
       setIsGeneratingSuggestions(false);
     }
@@ -81,7 +83,10 @@ function IterationView({ session, onAction }) {
   };
 
   const handleAcceptSuggestion = async (improvedPrompt) => {
-    const rationale = prompt('Please provide a brief rationale for this change:', 'Applied improvement suggestions');
+    const rationale = prompt(
+      t('iteration.rationale.prompt'),
+      t('iteration.rationale.default')
+    );
     if (rationale) {
       try {
         await onAction('iterate', {
@@ -91,7 +96,7 @@ function IterationView({ session, onAction }) {
         });
       } catch (error) {
         console.error('Error creating iteration:', error);
-        alert('Failed to create new iteration. Please try again.');
+        alert(t('iteration.alert.iterateFail'));
       }
     }
   };
@@ -101,37 +106,37 @@ function IterationView({ session, onAction }) {
     return (
       <div className="iteration-view">
         <div className="init-container">
-          <h2>Initialize Your Prompt</h2>
+          <h2>{t('iteration.init.title')}</h2>
 
           <div className="init-mode-selector">
             <button
               className={`mode-btn ${initMode === 'generate' ? 'active' : ''}`}
               onClick={() => setInitMode('generate')}
             >
-              Generate from Objective
+              {t('iteration.init.generateMode')}
             </button>
             <button
               className={`mode-btn ${initMode === 'provide' ? 'active' : ''}`}
               onClick={() => setInitMode('provide')}
             >
-              Provide Existing Prompt
+              {t('iteration.init.provideMode')}
             </button>
           </div>
 
           {initMode === 'generate' ? (
             <div className="init-form">
-              <label>Describe your objective:</label>
+              <label>{t('iteration.init.describeLabel')}</label>
               <textarea
                 value={objective}
                 onChange={(e) => setObjective(e.target.value)}
-                placeholder="E.g., Create a comprehensive code review prompt that checks for bugs, style, and best practices..."
+                placeholder={t('iteration.init.objectivePlaceholder')}
                 rows={5}
                 className="objective-input"
               />
             </div>
           ) : (
             <div className="init-form">
-              <label>Paste your prompt:</label>
+              <label>{t('iteration.init.provideLabel')}</label>
               <PromptEditor
                 prompt={currentPrompt}
                 onChange={setCurrentPrompt}
@@ -144,7 +149,7 @@ function IterationView({ session, onAction }) {
             onClick={handleInitialize}
             disabled={isInitializing || (initMode === 'generate' && !objective.trim()) || (initMode === 'provide' && !currentPrompt.trim())}
           >
-            {isInitializing ? 'Initializing...' : 'Initialize Prompt'}
+            {isInitializing ? t('iteration.init.initializing') : t('iteration.init.initButton')}
           </button>
         </div>
       </div>
@@ -155,7 +160,7 @@ function IterationView({ session, onAction }) {
   return (
     <div className="iteration-view">
       <div className="iteration-header">
-        <h2>Version {latestIteration.version}</h2>
+        <h2>{t('iteration.header.version', { version: latestIteration.version })}</h2>
         <div className="iteration-meta">
           <span>{latestIteration.change_rationale}</span>
         </div>
@@ -168,8 +173,8 @@ function IterationView({ session, onAction }) {
       />
 
       <div className="action-section">
-        <h3>Step 1: Test Your Prompt</h3>
-        <p>Test this prompt with multiple LLMs to see how they respond.</p>
+        <h3>{t('iteration.test.stepTitle')}</h3>
+        <p>{t('iteration.test.stepDescription')}</p>
 
         {!showTestInput ? (
           <button
@@ -177,15 +182,15 @@ function IterationView({ session, onAction }) {
             onClick={handleTestClick}
             disabled={isTesting}
           >
-            Test Prompt with LLMs
+            {t('iteration.test.button')}
           </button>
         ) : (
           <div className="test-input-container">
-            <label>Test Input (Optional):</label>
+            <label>{t('iteration.test.testInputLabel')}</label>
             <textarea
               value={testInput}
               onChange={(e) => setTestInput(e.target.value)}
-              placeholder="Enter a test question or input to use with your prompt. Leave empty to test the prompt as-is. Example: 'Review this code: function add(a, b) { return a + b; }'"
+              placeholder={t('iteration.test.placeholder')}
               rows={4}
               className="test-input-textarea"
             />
@@ -195,14 +200,14 @@ function IterationView({ session, onAction }) {
                 onClick={handleTest}
                 disabled={isTesting}
               >
-                {isTesting ? 'Testing...' : 'Run Test'}
+                {isTesting ? t('iteration.test.testing') : t('iteration.test.run')}
               </button>
               <button
                 className="action-btn cancel-btn"
                 onClick={() => setShowTestInput(false)}
                 disabled={isTesting}
               >
-                Cancel
+                {t('iteration.test.cancel')}
               </button>
             </div>
           </div>
@@ -217,14 +222,14 @@ function IterationView({ session, onAction }) {
           />
 
           <div className="action-section">
-            <h3>Step 2: Generate Improvement Suggestions</h3>
-            <p>Based on the test results and your feedback, get suggestions from all LLMs.</p>
+            <h3>{t('iteration.suggestions.stepTitle')}</h3>
+            <p>{t('iteration.suggestions.stepDescription')}</p>
             <button
               className="action-btn suggest-btn"
               onClick={handleGenerateSuggestions}
               disabled={isGeneratingSuggestions}
             >
-              {isGeneratingSuggestions ? 'Generating Suggestions...' : 'Generate Improvement Suggestions'}
+              {isGeneratingSuggestions ? t('iteration.suggestions.generating') : t('iteration.suggestions.button')}
             </button>
           </div>
         </>

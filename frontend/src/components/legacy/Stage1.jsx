@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useI18n } from '../../i18n/i18n.jsx';
 import './Stage1.css';
 
 export default function Stage1({ responses }) {
   const [activeTab, setActiveTab] = useState(0);
+  const { t } = useI18n();
 
   if (!responses || responses.length === 0) {
     return null;
@@ -11,7 +13,7 @@ export default function Stage1({ responses }) {
 
   return (
     <div className="stage stage1">
-      <h3 className="stage-title">Stage 1: Individual Responses</h3>
+      <h3 className="stage-title">{t('legacy.stage1.title')}</h3>
 
       <div className="tabs">
         {responses.map((resp, index) => (

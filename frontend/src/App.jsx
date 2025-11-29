@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import IterationView from './components/IterationView';
 import { api } from './api';
+import { useI18n } from './i18n/i18n.jsx';
 import './App.css';
 
 function App() {
@@ -9,6 +10,7 @@ function App() {
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [currentSession, setCurrentSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useI18n();
 
   // Load sessions on mount
   useEffect(() => {
@@ -118,7 +120,7 @@ function App() {
   if (loading) {
     return (
       <div className="app">
-        <div className="loading">Loading...</div>
+        <div className="loading">{t('common.loading')}</div>
       </div>
     );
   }
@@ -139,10 +141,10 @@ function App() {
           />
         ) : (
           <div className="empty-state">
-            <h2>Welcome to Prompt Optimizer</h2>
-            <p>Create a new session to start optimizing your prompts.</p>
+            <h2>{t('app.empty.title')}</h2>
+            <p>{t('app.empty.description')}</p>
             <button className="create-session-btn" onClick={handleNewSession}>
-              Create New Session
+              {t('app.empty.button')}
             </button>
           </div>
         )}

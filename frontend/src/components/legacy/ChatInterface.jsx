@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import Stage1 from './Stage1';
 import Stage2 from './Stage2';
 import Stage3 from './Stage3';
+import { useI18n } from '../../i18n/i18n.jsx';
 import './ChatInterface.css';
 
 export default function ChatInterface({
@@ -12,6 +13,7 @@ export default function ChatInterface({
 }) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
+  const { t } = useI18n();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -41,8 +43,8 @@ export default function ChatInterface({
     return (
       <div className="chat-interface">
         <div className="empty-state">
-          <h2>Welcome to LLM Council</h2>
-          <p>Create a new conversation to get started</p>
+          <h2>{t('legacy.chat.welcomeTitle')}</h2>
+          <p>{t('legacy.chat.welcomeDescription')}</p>
         </div>
       </div>
     );
@@ -53,15 +55,15 @@ export default function ChatInterface({
       <div className="messages-container">
         {conversation.messages.length === 0 ? (
           <div className="empty-state">
-            <h2>Start a conversation</h2>
-            <p>Ask a question to consult the LLM Council</p>
+            <h2>{t('legacy.chat.emptyTitle')}</h2>
+            <p>{t('legacy.chat.emptyDescription')}</p>
           </div>
         ) : (
           conversation.messages.map((msg, index) => (
             <div key={index} className="message-group">
               {msg.role === 'user' ? (
                 <div className="user-message">
-                  <div className="message-label">You</div>
+                  <div className="message-label">{t('legacy.chat.userLabel')}</div>
                   <div className="message-content">
                     <div className="markdown-content">
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
@@ -70,13 +72,13 @@ export default function ChatInterface({
                 </div>
               ) : (
                 <div className="assistant-message">
-                  <div className="message-label">LLM Council</div>
+                  <div className="message-label">{t('legacy.chat.assistantLabel')}</div>
 
                   {/* Stage 1 */}
                   {msg.loading?.stage1 && (
                     <div className="stage-loading">
                       <div className="spinner"></div>
-                      <span>Running Stage 1: Collecting individual responses...</span>
+                      <span>{t('legacy.chat.stage1Loading')}</span>
                     </div>
                   )}
                   {msg.stage1 && <Stage1 responses={msg.stage1} />}
@@ -85,7 +87,7 @@ export default function ChatInterface({
                   {msg.loading?.stage2 && (
                     <div className="stage-loading">
                       <div className="spinner"></div>
-                      <span>Running Stage 2: Peer rankings...</span>
+                      <span>{t('legacy.chat.stage2Loading')}</span>
                     </div>
                   )}
                   {msg.stage2 && (
@@ -100,7 +102,7 @@ export default function ChatInterface({
                   {msg.loading?.stage3 && (
                     <div className="stage-loading">
                       <div className="spinner"></div>
-                      <span>Running Stage 3: Final synthesis...</span>
+                      <span>{t('legacy.chat.stage3Loading')}</span>
                     </div>
                   )}
                   {msg.stage3 && <Stage3 finalResponse={msg.stage3} />}
@@ -113,7 +115,7 @@ export default function ChatInterface({
         {isLoading && (
           <div className="loading-indicator">
             <div className="spinner"></div>
-            <span>Consulting the council...</span>
+            <span>{t('legacy.chat.loadingCouncil')}</span>
           </div>
         )}
 
@@ -124,7 +126,7 @@ export default function ChatInterface({
         <form className="input-form" onSubmit={handleSubmit}>
           <textarea
             className="message-input"
-            placeholder="Ask your question... (Shift+Enter for new line, Enter to send)"
+            placeholder={t('legacy.chat.placeholder')}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -136,7 +138,7 @@ export default function ChatInterface({
             className="send-button"
             disabled={!input.trim() || isLoading}
           >
-            Send
+            {t('legacy.chat.send')}
           </button>
         </form>
       )}

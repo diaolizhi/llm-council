@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useI18n } from '../../i18n/i18n.jsx';
 import './Stage2.css';
 
 function deAnonymizeText(text, labelToModel) {
@@ -16,6 +17,7 @@ function deAnonymizeText(text, labelToModel) {
 
 export default function Stage2({ rankings, labelToModel, aggregateRankings }) {
   const [activeTab, setActiveTab] = useState(0);
+  const { t } = useI18n();
 
   if (!rankings || rankings.length === 0) {
     return null;
@@ -23,12 +25,11 @@ export default function Stage2({ rankings, labelToModel, aggregateRankings }) {
 
   return (
     <div className="stage stage2">
-      <h3 className="stage-title">Stage 2: Peer Rankings</h3>
+      <h3 className="stage-title">{t('legacy.stage2.title')}</h3>
 
-      <h4>Raw Evaluations</h4>
+      <h4>{t('legacy.stage2.rawEvaluations')}</h4>
       <p className="stage-description">
-        Each model evaluated all responses (anonymized as Response A, B, C, etc.) and provided rankings.
-        Below, model names are shown in <strong>bold</strong> for readability, but the original evaluation used anonymous labels.
+        {t('legacy.stage2.description')}
       </p>
 
       <div className="tabs">
@@ -56,7 +57,7 @@ export default function Stage2({ rankings, labelToModel, aggregateRankings }) {
         {rankings[activeTab].parsed_ranking &&
          rankings[activeTab].parsed_ranking.length > 0 && (
           <div className="parsed-ranking">
-            <strong>Extracted Ranking:</strong>
+            <strong>{t('legacy.stage2.parsedRanking')}</strong>
             <ol>
               {rankings[activeTab].parsed_ranking.map((label, i) => (
                 <li key={i}>
@@ -72,22 +73,24 @@ export default function Stage2({ rankings, labelToModel, aggregateRankings }) {
 
       {aggregateRankings && aggregateRankings.length > 0 && (
         <div className="aggregate-rankings">
-          <h4>Aggregate Rankings (Street Cred)</h4>
+          <h4>{t('legacy.stage2.aggregateTitle')}</h4>
           <p className="stage-description">
-            Combined results across all peer evaluations (lower score is better):
+            {t('legacy.stage2.aggregateDescription')}
           </p>
           <div className="aggregate-list">
             {aggregateRankings.map((agg, index) => (
               <div key={index} className="aggregate-item">
-                <span className="rank-position">#{index + 1}</span>
+                <span className="rank-position">
+                  {t('legacy.stage2.position', { position: index + 1 })}
+                </span>
                 <span className="rank-model">
                   {agg.model.split('/')[1] || agg.model}
                 </span>
                 <span className="rank-score">
-                  Avg: {agg.average_rank.toFixed(2)}
+                  {t('legacy.stage2.avg', { value: agg.average_rank.toFixed(2) })}
                 </span>
                 <span className="rank-count">
-                  ({agg.rankings_count} votes)
+                  {t('legacy.stage2.votes', { count: agg.rankings_count })}
                 </span>
               </div>
             ))}

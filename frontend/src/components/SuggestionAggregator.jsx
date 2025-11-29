@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { useI18n } from '../i18n/i18n.jsx';
 import './SuggestionAggregator.css';
 
 function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
@@ -8,11 +9,12 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
   const [mergedPrompt, setMergedPrompt] = useState('');
   const [userPreference, setUserPreference] = useState('');
   const [isMerging, setIsMerging] = useState(false);
+  const { t } = useI18n();
 
   if (!suggestions || suggestions.length === 0) {
     return (
       <div className="suggestion-aggregator">
-        <p className="no-suggestions">No suggestions yet. Generate suggestions first.</p>
+        <p className="no-suggestions">{t('suggestions.none')}</p>
       </div>
     );
   }
@@ -25,7 +27,7 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
       setShowMerged(true);
     } catch (error) {
       console.error('Error merging suggestions:', error);
-      alert('Failed to merge suggestions. Please try again.');
+      alert(t('suggestions.mergeFail'));
     } finally {
       setIsMerging(false);
     }
@@ -46,14 +48,18 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
   return (
     <div className="suggestion-aggregator">
       <div className="suggestions-header">
-        <h3>Improvement Suggestions ({suggestions.length} models)</h3>
+        <h3>{t('suggestions.header', { count: suggestions.length })}</h3>
         <div className="merge-controls">
           <button
             className="merge-btn"
             onClick={handleMerge}
             disabled={isMerging || showMerged}
           >
-            {isMerging ? 'Merging...' : showMerged ? 'Merged ✓' : 'Merge All Suggestions'}
+            {isMerging
+              ? t('suggestions.merging')
+              : showMerged
+                ? t('suggestions.merged')
+                : t('suggestions.merge')}
           </button>
         </div>
       </div>
@@ -62,7 +68,7 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
         <div className="user-preference">
           <input
             type="text"
-            placeholder="Optional: What should we prioritize in the improvements?"
+            placeholder={t('suggestions.preferencePlaceholder')}
             value={userPreference}
             onChange={(e) => setUserPreference(e.target.value)}
             className="preference-input"
@@ -73,9 +79,9 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
       {showMerged ? (
         <div className="merged-suggestion">
           <div className="merged-header">
-            <h4>Merged Improved Prompt</h4>
+            <h4>{t('suggestions.mergedTitle')}</h4>
             <button className="back-btn" onClick={() => setShowMerged(false)}>
-              ← View Individual Suggestions
+              {t('suggestions.viewIndividuals')}
             </button>
           </div>
           <div className="merged-content">
@@ -83,7 +89,7 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
           </div>
           <div className="merged-actions">
             <button className="accept-btn primary" onClick={handleAcceptMerged}>
-              Use This Improved Prompt
+              {t('suggestions.useMerged')}
             </button>
           </div>
         </div>
@@ -120,7 +126,7 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
                     className="accept-btn"
                     onClick={() => handleAcceptSuggestion(suggestion.suggestion)}
                   >
-                    Use This Suggestion
+                    {t('suggestions.useSingle')}
                   </button>
                 </div>
               </div>
