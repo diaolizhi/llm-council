@@ -17,6 +17,25 @@ export const api = {
   },
 
   /**
+   * List all sessions with version history details.
+   */
+  async listSessionsWithVersions() {
+    const sessions = await this.listSessions();
+    const versions = await Promise.all(
+      sessions.map(async (session) => {
+        try {
+          const history = await this.getVersionHistory(session.id);
+          return { ...session, versions: history.versions || [] };
+        } catch (error) {
+          console.error(`Failed to load versions for session ${session.id}`, error);
+          return { ...session, versions: [] };
+        }
+      })
+    );
+    return versions;
+  },
+
+  /**
    * Create a new optimization session.
    */
   async createSession(title = 'New Optimization Session', objective = null) {
@@ -181,6 +200,23 @@ export const api = {
     });
     if (!response.ok) {
       throw new Error('Failed to export session');
+    }
+    return response.json();
+  },
+
+  /**
+   * Restore a specific version as the current active version.
+   */
+  async restoreVersion(sessionId, version) {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/restore`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ version }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to restore version');
     }
     return response.json();
   },

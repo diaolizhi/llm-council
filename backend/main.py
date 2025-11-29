@@ -74,6 +74,11 @@ class MergeSuggestionsRequest(BaseModel):
     user_preference: Optional[str] = None
 
 
+class RestoreVersionRequest(BaseModel):
+    """Request to restore a specific version as current."""
+    version: int
+
+
 class SessionMetadata(BaseModel):
     """Session metadata for list view."""
     id: str
@@ -175,12 +180,7 @@ async def initialize_prompt(session_id: str, request: InitializePromptRequest):
         session_id,
         prompt=prompt,
         change_rationale=change_rationale,
-        metadata={"prompt_title": prompt_title}
-    )
-
-    # Advance stage only after successful creation
-    session = storage.update_session_meta(
-        session_id,
+        metadata={"prompt_title": prompt_title},
         stage="title_ready"
     )
 
@@ -199,7 +199,7 @@ async def test_prompt(session_id: str, request: TestPromptRequest):
     Test the current prompt with selected models.
     """
     # Get the latest iteration
-    iteration = storage.get_latest_iteration(session_id)
+    iteration = storage.get_active_iteration(session_id)
     if iteration is None:
         raise HTTPException(status_code=404, detail="No iterations found. Initialize prompt first.")
 
@@ -217,11 +217,14 @@ async def test_prompt(session_id: str, request: TestPromptRequest):
     storage.update_iteration_test_results(
         session_id,
         iteration["version"],
-        test_results
+        test_results,
+        stage="tested",
+        clear_feedback=True,
+        clear_suggestions=True
     )
 
     # Advance stage after successful testing
-    session = storage.update_session_meta(session_id, stage="tested")
+    session = storage.update_session_meta(session_id, stage="tested", current_version=iteration["version"])
 
     return {
         "version": iteration["version"],
@@ -236,7 +239,7 @@ async def submit_feedback(session_id: str, request: SubmitFeedbackRequest):
     Submit rating and/or feedback for a specific test result.
     """
     # Get the latest iteration
-    iteration = storage.get_latest_iteration(session_id)
+    iteration = storage.get_active_iteration(session_id)
     if iteration is None:
         raise HTTPException(status_code=404, detail="No iterations found")
 
@@ -250,7 +253,7 @@ async def submit_feedback(session_id: str, request: SubmitFeedbackRequest):
     )
 
     # Get updated iteration to return current state
-    updated_iteration = storage.get_latest_iteration(session_id)
+    updated_iteration = storage.get_active_iteration(session_id)
 
     return {
         "version": updated_iteration["version"],
@@ -264,7 +267,7 @@ async def generate_suggestions(session_id: str, request: GenerateSuggestionsRequ
     Generate improvement suggestions based on test results and feedback.
     """
     # Get the latest iteration
-    iteration = storage.get_latest_iteration(session_id)
+    iteration = storage.get_active_iteration(session_id)
     if iteration is None:
         raise HTTPException(status_code=404, detail="No iterations found")
 
@@ -298,7 +301,7 @@ async def merge_improvement_suggestions(session_id: str, request: MergeSuggestio
     Merge improvement suggestions into a single improved prompt.
     """
     # Get the latest iteration
-    iteration = storage.get_latest_iteration(session_id)
+    iteration = storage.get_active_iteration(session_id)
     if iteration is None:
         raise HTTPException(status_code=404, detail="No iterations found")
 
@@ -338,8 +341,8 @@ async def create_new_iteration(session_id: str, request: CreateIterationRequest)
         user_decision=request.user_decision,
         metadata={
             "prompt_title": session.get("prompt_title"),
-            "stage": "title_ready"
-        }
+        },
+        stage="title_ready"
     )
 
     # Get the new iteration
@@ -400,7 +403,8 @@ async def get_version_history(session_id: str):
             "timestamp": iteration["timestamp"],
             "change_rationale": iteration["change_rationale"],
             "prompt": iteration["prompt"],
-            "metrics": calculate_iteration_metrics(iteration)
+            "metrics": calculate_iteration_metrics(iteration),
+            "stage": iteration.get("stage", session.get("stage"))
         }
 
         # Add diff if not the first version
@@ -461,6 +465,28 @@ async def export_session(session_id: str, format: str = "json"):
         }
     else:
         raise HTTPException(status_code=400, detail=f"Unsupported format: {format}")
+
+
+@app.post("/api/sessions/{session_id}/restore")
+async def restore_version(session_id: str, request: RestoreVersionRequest):
+    """
+    Restore a specific version as the current active version (overwrite).
+    """
+    session = storage.get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    try:
+        session = storage.restore_iteration(session_id, request.version)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+    active_iteration = storage.get_active_iteration(session_id)
+
+    return {
+        "session": session,
+        "active_iteration": active_iteration
+    }
 
 
 if __name__ == "__main__":

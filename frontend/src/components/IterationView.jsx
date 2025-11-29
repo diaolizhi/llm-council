@@ -5,21 +5,32 @@ import SuggestionAggregator from './SuggestionAggregator';
 import { useI18n } from '../i18n/i18n.jsx';
 import './IterationView.css';
 
-function IterationView({ session, onAction }) {
+function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
   const [currentPrompt, setCurrentPrompt] = useState('');
   const [isInitializing, setIsInitializing] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
+  const [isSavingManual, setIsSavingManual] = useState(false);
+  const [isResettingDependentData, setIsResettingDependentData] = useState(false);
   const [initMode, setInitMode] = useState('generate'); // 'generate' or 'provide'
   const [objective, setObjective] = useState('');
   const [testInput, setTestInput] = useState('');
   const [showTestInput, setShowTestInput] = useState(false);
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [manualPrompt, setManualPrompt] = useState('');
+  const [manualRationale, setManualRationale] = useState('');
   const { t } = useI18n();
 
-  const latestIteration = session?.iterations?.[session.iterations.length - 1];
+  const sortedIterations = (session?.iterations || []).slice().sort((a, b) => b.version - a.version);
+  const activeIteration =
+    sortedIterations.find((iter) => iter.version === activeVersion) ||
+    sortedIterations[sortedIterations.length - 1];
   const hasIterations = session?.iterations?.length > 0;
   const promptTitle = session?.prompt_title || session?.title;
-  const stage = session?.stage;
+  const stage = activeIteration?.stage || session?.stage;
+  const isHidingDependentData = isResettingDependentData || isTesting;
+  const visibleTestResults = isHidingDependentData ? [] : (activeIteration?.test_results || []);
+  const visibleSuggestions = isHidingDependentData ? [] : (activeIteration?.suggestions || []);
 
   const stageLabels = {
     init: t('iteration.stage.init'),
@@ -28,6 +39,44 @@ function IterationView({ session, onAction }) {
     tested: t('iteration.stage.tested')
   };
   const stageLabel = stage ? (stageLabels[stage] || stage) : null;
+
+  const handleVersionChange = (e) => {
+    const version = Number(e.target.value);
+    if (!version || version === activeIteration?.version) return;
+    if (onRestoreVersion) {
+      onRestoreVersion(session.id, version);
+    }
+  };
+
+  const openManualModal = () => {
+    if (!activeIteration) return;
+    setManualPrompt(activeIteration.prompt || '');
+    setManualRationale(t('iteration.rationale.default'));
+    setShowManualModal(true);
+  };
+
+  const closeManualModal = () => {
+    if (isSavingManual) return;
+    setShowManualModal(false);
+  };
+
+  const handleManualVersionCreate = async () => {
+    if (!activeIteration || !manualPrompt.trim() || !manualRationale.trim()) return;
+    setIsSavingManual(true);
+    try {
+      await onAction('iterate', {
+        prompt: manualPrompt,
+        change_rationale: manualRationale,
+        user_decision: 'manual',
+      });
+      setShowManualModal(false);
+    } catch (error) {
+      console.error('Error creating manual version:', error);
+      alert(t('iteration.alert.iterateFail'));
+    } finally {
+      setIsSavingManual(false);
+    }
+  };
 
   const handleInitialize = async () => {
     setIsInitializing(true);
@@ -51,6 +100,7 @@ function IterationView({ session, onAction }) {
 
   const handleTest = async () => {
     setIsTesting(true);
+    setIsResettingDependentData(true);
     try {
       await onAction('test', { test_input: testInput || null });
       setShowTestInput(false);
@@ -59,6 +109,7 @@ function IterationView({ session, onAction }) {
       alert(t('iteration.alert.testFail'));
     } finally {
       setIsTesting(false);
+      setIsResettingDependentData(false);
     }
   };
 
@@ -93,22 +144,9 @@ function IterationView({ session, onAction }) {
   };
 
   const handleAcceptSuggestion = async (improvedPrompt) => {
-    const rationale = prompt(
-      t('iteration.rationale.prompt'),
-      t('iteration.rationale.default')
-    );
-    if (rationale) {
-      try {
-        await onAction('iterate', {
-          prompt: improvedPrompt,
-          change_rationale: rationale,
-          user_decision: 'accepted'
-        });
-      } catch (error) {
-        console.error('Error creating iteration:', error);
-        alert(t('iteration.alert.iterateFail'));
-      }
-    }
+    setManualPrompt(improvedPrompt || '');
+    setManualRationale(t('iteration.rationale.default'));
+    setShowManualModal(true);
   };
 
   // Initialization view (no iterations yet)
@@ -171,16 +209,38 @@ function IterationView({ session, onAction }) {
     <div className="iteration-view">
       <div className="iteration-header">
         <h2>{promptTitle || t('promptEditor.title')}</h2>
+        {sortedIterations.length > 0 && (
+          <div className="iteration-header-actions">
+            <div className="version-switcher">
+              <select
+                id="version-select"
+                value={activeIteration?.version || ''}
+                onChange={handleVersionChange}
+                className="version-select"
+              >
+                {sortedIterations.map((iter) => (
+                  <option key={iter.version} value={iter.version}>
+                    v{iter.version} · {stageLabels[iter.stage] || iter.stage}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              className="manual-version-btn"
+              onClick={openManualModal}
+            >
+              {t('iteration.manual.create')}
+            </button>
+          </div>
+        )}
         <div className="iteration-meta">
-          <span>{t('iteration.header.version', { version: latestIteration.version })}</span>
-          {stageLabel && <span className="stage-tag">{stageLabel}</span>}
-          {latestIteration.change_rationale && <span>{latestIteration.change_rationale}</span>}
+          {activeIteration.change_rationale && <span>{activeIteration.change_rationale}</span>}
         </div>
       </div>
 
       <PromptEditor
-        prompt={latestIteration.prompt}
-        version={latestIteration.version}
+        prompt={activeIteration.prompt}
+        version={activeIteration.version}
         readOnly={true}
       />
 
@@ -226,10 +286,10 @@ function IterationView({ session, onAction }) {
         )}
       </div>
 
-      {latestIteration.test_results && latestIteration.test_results.length > 0 && (
+      {visibleTestResults && visibleTestResults.length > 0 && (
         <>
           <TestResults
-            testResults={latestIteration.test_results}
+            testResults={visibleTestResults}
             onFeedbackChange={handleFeedbackChange}
           />
 
@@ -247,12 +307,46 @@ function IterationView({ session, onAction }) {
         </>
       )}
 
-      {latestIteration.suggestions && latestIteration.suggestions.length > 0 && (
+      {visibleSuggestions && visibleSuggestions.length > 0 && (
         <SuggestionAggregator
-          suggestions={latestIteration.suggestions}
+          suggestions={visibleSuggestions}
           onAccept={handleAcceptSuggestion}
           onMerge={handleMergeSuggestions}
         />
+      )}
+
+      {showManualModal && (
+        <div className="manual-modal-backdrop" onClick={closeManualModal}>
+          <div className="manual-modal" onClick={(e) => e.stopPropagation()}>
+            <h4>{t('iteration.manual.title')}</h4>
+            <label className="manual-label">{t('iteration.manual.newPrompt')}</label>
+            <textarea
+              className="manual-textarea"
+              rows={8}
+              value={manualPrompt}
+              onChange={(e) => setManualPrompt(e.target.value)}
+            />
+            <label className="manual-label">{t('iteration.manual.rationale')}</label>
+            <textarea
+              className="manual-textarea"
+              rows={3}
+              value={manualRationale}
+              onChange={(e) => setManualRationale(e.target.value)}
+            />
+            <div className="manual-modal-actions">
+              <button className="cancel-btn" onClick={closeManualModal} disabled={isSavingManual}>
+                {t('iteration.manual.cancel')}
+              </button>
+              <button
+                className="action-btn"
+                onClick={handleManualVersionCreate}
+                disabled={isSavingManual || !manualPrompt.trim() || !manualRationale.trim()}
+              >
+                {isSavingManual ? t('common.loading') : t('iteration.manual.save')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -73,6 +73,10 @@ def get_session(session_id: str) -> Optional[Dict[str, Any]]:
     session.setdefault("current_version", len(session.get("iterations", [])))
     session.setdefault("stage", "init")
 
+    # Ensure iterations have stage metadata; default to session stage if missing
+    for iteration in session.get("iterations", []):
+        iteration.setdefault("stage", session.get("stage", "init"))
+
     return session
 
 
@@ -92,15 +96,22 @@ def list_sessions() -> List[Dict[str, Any]]:
             session = get_session(session_id)
             if session:
                 # Return metadata only
-                iteration_count = len(session.get("iterations", []))
-                last_modified = session.get("iterations", [{}])[-1].get("timestamp", session["created_at"]) if session.get("iterations") else session["created_at"]
+                iterations = session.get("iterations", [])
+                iteration_count = len(iterations)
+                last_modified = iterations[-1].get("timestamp", session["created_at"]) if iterations else session["created_at"]
+                # Derive active iteration stage based on current_version; fallback to latest/session stage
+                active_iteration = get_iteration(session_id, session.get("current_version", iteration_count))
+                derived_stage = (
+                    (active_iteration or (iterations[-1] if iterations else {})).get("stage")
+                    or session.get("stage", "init")
+                )
                 sessions.append({
                     "id": session["id"],
                     "created_at": session["created_at"],
                     "title": session["title"],
                     "prompt_title": session.get("prompt_title"),
                     "current_version": session.get("current_version", iteration_count),
-                    "stage": session.get("stage", "init"),
+                    "stage": derived_stage,
                     "iteration_count": iteration_count,
                     "version_count": iteration_count,
                     "last_modified": last_modified
@@ -133,7 +144,8 @@ def add_iteration(
     test_results: Optional[List[Dict[str, Any]]] = None,
     suggestions: Optional[List[Dict[str, Any]]] = None,
     user_decision: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None,
+    stage: str = "title_ready",
 ) -> Dict[str, Any]:
     """
     Add a new iteration to a session.
@@ -164,13 +176,15 @@ def add_iteration(
         "change_rationale": change_rationale,
         "test_results": test_results or [],
         "suggestions": suggestions or [],
-        "user_decision": user_decision
+        "user_decision": user_decision,
+        "stage": stage,
     }
 
     session["iterations"].append(iteration)
 
     # Update session-level metadata
     session["current_version"] = version
+    session["stage"] = stage
     if metadata:
         session.update(metadata)
 
@@ -183,7 +197,10 @@ def add_iteration(
 def update_iteration_test_results(
     session_id: str,
     version: int,
-    test_results: List[Dict[str, Any]]
+    test_results: List[Dict[str, Any]],
+    stage: Optional[str] = None,
+    clear_feedback: bool = False,
+    clear_suggestions: bool = False,
 ):
     """
     Update test results for a specific iteration.
@@ -201,9 +218,21 @@ def update_iteration_test_results(
     for iteration in session["iterations"]:
         if iteration["version"] == version:
             iteration["test_results"] = test_results
+            if clear_feedback:
+                for result in iteration["test_results"]:
+                    result["rating"] = None
+                    result["feedback"] = None
+            if clear_suggestions:
+                iteration["suggestions"] = []
+            if stage:
+                iteration["stage"] = stage
             break
     else:
         raise ValueError(f"Version {version} not found in session {session_id}")
+
+    # Keep session-level stage in sync with active iteration
+    if stage:
+        session["stage"] = stage
 
     with open(_get_session_path(session_id), 'w', encoding='utf-8') as f:
         json.dump(session, f, indent=2, ensure_ascii=False)
@@ -316,6 +345,23 @@ def get_latest_iteration(session_id: str) -> Optional[Dict[str, Any]]:
     return session["iterations"][-1]
 
 
+def get_active_iteration(session_id: str) -> Optional[Dict[str, Any]]:
+    """
+    Get the active iteration based on current_version, falling back to latest.
+    """
+    session = get_session(session_id)
+    if not session or not session.get("iterations"):
+        return None
+
+    current_version = session.get("current_version")
+    if current_version:
+        for iteration in session["iterations"]:
+            if iteration["version"] == current_version:
+                return iteration
+
+    return session["iterations"][-1]
+
+
 def update_session_meta(session_id: str, **fields) -> Dict[str, Any]:
     """
     Update session-level metadata fields.
@@ -333,6 +379,35 @@ def update_session_meta(session_id: str, **fields) -> Dict[str, Any]:
 
     for key, value in fields.items():
         session[key] = value
+
+    with open(_get_session_path(session_id), 'w', encoding='utf-8') as f:
+        json.dump(session, f, indent=2, ensure_ascii=False)
+
+    return session
+
+
+def restore_iteration(session_id: str, version: int) -> Dict[str, Any]:
+    """
+    Restore session state to a specific iteration/version (overwrite current).
+
+    Args:
+        session_id: The session ID
+        version: The iteration version number to restore
+
+    Returns:
+        Updated session dict
+    """
+    session = get_session(session_id)
+    if not session:
+        raise ValueError(f"Session {session_id} not found")
+
+    target_iteration = get_iteration(session_id, version)
+    if not target_iteration:
+        raise ValueError(f"Version {version} not found in session {session_id}")
+
+    # Update session to point to restored version
+    session["current_version"] = version
+    session["stage"] = target_iteration.get("stage", session.get("stage", "init"))
 
     with open(_get_session_path(session_id), 'w', encoding='utf-8') as f:
         json.dump(session, f, indent=2, ensure_ascii=False)

@@ -188,7 +188,7 @@ Based on the test results and user feedback, suggest specific improvements to th
 2. Improving clarity and specificity
 3. Enhancing effectiveness based on the test outputs
 
-Provide your suggestion as a concrete, actionable improvement or a revised version of the prompt. Be specific about what to change and why."""
+Return ONLY the improved prompt text wrapped in <prompt>...</prompt> XML tags with no explanation outside the tag. If you include any notes, keep them inside an XML comment after the tag."""
 
     messages = [{"role": "user", "content": suggestion_prompt}]
 
@@ -251,7 +251,7 @@ Your task:
 3. Create a single, improved version of the prompt that incorporates the best ideas
 4. Ensure the improved prompt is cohesive and well-structured
 
-Return ONLY the improved prompt text, without any explanation or meta-commentary."""
+Return ONLY the improved prompt text wrapped in <prompt>...</prompt> XML tags with no explanation outside the tag. If you include any notes, keep them inside an XML comment after the tag."""
 
     messages = [{"role": "user", "content": merge_prompt}]
 

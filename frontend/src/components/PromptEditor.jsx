@@ -6,6 +6,11 @@ function PromptEditor({ prompt, onChange, readOnly = false, version = null }) {
   const [charCount, setCharCount] = useState(prompt?.length || 0);
   const { t } = useI18n();
 
+  // Keep character count in sync when prompt prop changes
+  React.useEffect(() => {
+    setCharCount(prompt?.length || 0);
+  }, [prompt]);
+
   const handleChange = (e) => {
     const newValue = e.target.value;
     setCharCount(newValue.length);

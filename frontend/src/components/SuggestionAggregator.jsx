@@ -9,6 +9,7 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
   const [mergedPrompt, setMergedPrompt] = useState('');
   const [userPreference, setUserPreference] = useState('');
   const [isMerging, setIsMerging] = useState(false);
+  const [isSavingAccepted, setIsSavingAccepted] = useState(false);
   const { t } = useI18n();
 
   if (!suggestions || suggestions.length === 0) {
@@ -33,15 +34,32 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
     }
   };
 
-  const handleAcceptSuggestion = (suggestion) => {
-    if (onAccept) {
-      onAccept(suggestion);
+  const extractPrompt = (text) => {
+    if (!text) return '';
+    const match = text.match(/<prompt>([\s\S]*?)<\/prompt>/i);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+    return text.trim();
+  };
+
+  const handleAcceptSuggestion = async (suggestion) => {
+    if (!onAccept) return;
+    setIsSavingAccepted(true);
+    try {
+      await onAccept(extractPrompt(suggestion));
+    } finally {
+      setIsSavingAccepted(false);
     }
   };
 
-  const handleAcceptMerged = () => {
-    if (onAccept) {
-      onAccept(mergedPrompt);
+  const handleAcceptMerged = async () => {
+    if (!onAccept) return;
+    setIsSavingAccepted(true);
+    try {
+      await onAccept(extractPrompt(mergedPrompt));
+    } finally {
+      setIsSavingAccepted(false);
     }
   };
 
@@ -88,8 +106,8 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
             <pre className="merged-prompt">{mergedPrompt}</pre>
           </div>
           <div className="merged-actions">
-            <button className="accept-btn primary" onClick={handleAcceptMerged}>
-              {t('suggestions.useMerged')}
+            <button className="accept-btn primary" onClick={handleAcceptMerged} disabled={isSavingAccepted}>
+              {isSavingAccepted ? t('common.loading') : t('suggestions.useMerged')}
             </button>
           </div>
         </div>

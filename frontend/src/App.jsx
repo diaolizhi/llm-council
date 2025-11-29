@@ -9,6 +9,7 @@ function App() {
   const [sessions, setSessions] = useState([]);
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [currentSession, setCurrentSession] = useState(null);
+  const [currentVersion, setCurrentVersion] = useState(null);
   const [loading, setLoading] = useState(true);
   const { t } = useI18n();
 
@@ -26,12 +27,16 @@ function App() {
 
   const loadSessions = async () => {
     try {
-      const sessionsList = await api.listSessions();
+      const sessionsList = await api.listSessionsWithVersions();
       setSessions(sessionsList);
 
       // Select first session if available
       if (sessionsList.length > 0 && !currentSessionId) {
         setCurrentSessionId(sessionsList[0].id);
+        const defaultVersion =
+          sessionsList[0].current_version ||
+          (sessionsList[0].versions?.[sessionsList[0].versions.length - 1]?.version ?? null);
+        setCurrentVersion(defaultVersion);
       }
     } catch (error) {
       console.error('Failed to load sessions:', error);
@@ -44,6 +49,7 @@ function App() {
     try {
       const session = await api.getSession(sessionId);
       setCurrentSession(session);
+      setCurrentVersion(session.current_version || (session.iterations?.slice(-1)[0]?.version ?? null));
     } catch (error) {
       console.error('Failed to load session:', error);
     }
@@ -55,6 +61,7 @@ function App() {
       setSessions([session, ...sessions]);
       setCurrentSessionId(session.id);
       setCurrentSession(session);
+      setCurrentVersion(null);
     } catch (error) {
       console.error('Failed to create session:', error);
       alert('Failed to create new session. Please try again.');
@@ -63,6 +70,29 @@ function App() {
 
   const handleSelectSession = (sessionId) => {
     setCurrentSessionId(sessionId);
+    const sessionMeta = sessions.find((s) => s.id === sessionId);
+    if (sessionMeta) {
+      setCurrentVersion(
+        sessionMeta.current_version ||
+          (sessionMeta.versions?.[sessionMeta.versions.length - 1]?.version ?? null)
+      );
+    } else {
+      setCurrentVersion(null);
+    }
+  };
+
+  const handleRestoreVersion = async (sessionId, version) => {
+    if (!sessionId || !version) return;
+    try {
+      await api.restoreVersion(sessionId, version);
+      setCurrentSessionId(sessionId);
+      setCurrentVersion(version);
+      await loadSession(sessionId);
+      await loadSessions();
+    } catch (error) {
+      console.error('Failed to restore version:', error);
+      alert(t('iteration.alert.restoreFail') || 'Failed to restore version');
+    }
   };
 
   const handleAction = async (action, data) => {
@@ -76,11 +106,13 @@ function App() {
           result = await api.initializePrompt(currentSessionId, data.mode, data);
           await loadSession(currentSessionId);
           await loadSessions(); // Refresh session list
+          setCurrentVersion(result?.version || null);
           return result;
 
         case 'test':
           result = await api.testPrompt(currentSessionId, data.models, data.test_input);
           await loadSession(currentSessionId);
+          setCurrentVersion((prev) => prev || result?.version || null);
           return result;
 
         case 'feedback':
@@ -106,6 +138,7 @@ function App() {
           );
           await loadSession(currentSessionId);
           await loadSessions(); // Refresh session list
+          setCurrentVersion(result?.version || null);
           return result;
 
         default:
@@ -137,6 +170,8 @@ function App() {
         {currentSession ? (
           <IterationView
             session={currentSession}
+            activeVersion={currentVersion}
+            onRestoreVersion={handleRestoreVersion}
             onAction={handleAction}
           />
         ) : (
