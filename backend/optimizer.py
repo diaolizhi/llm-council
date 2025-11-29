@@ -5,6 +5,42 @@ from .openrouter import query_models_parallel, query_model
 from .config import TEST_MODELS, SYNTHESIZER_MODEL, GENERATOR_MODEL
 
 
+async def generate_prompt_title(prompt: str) -> str:
+    """
+    Generate a concise title for a prompt.
+
+    Args:
+        prompt: The prompt content to summarize
+
+    Returns:
+        A short title string
+    """
+    # Keep it short and direct for UI display
+    title_prompt = f"""You are a prompt titling assistant.
+Generate a concise, 4-12 character (or word-equivalent) title that summarizes the following prompt.
+Return ONLY the title text without quotes or explanations.
+
+Prompt:
+{prompt}
+"""
+    messages = [{"role": "user", "content": title_prompt}]
+
+    try:
+        response = await query_model(GENERATOR_MODEL, messages, timeout=30.0)
+    except Exception:
+        response = None
+
+    if not response:
+        # Fallback: truncate the prompt text to form a title
+        return (prompt or "Prompt").strip()[:20] or "Prompt"
+
+    title = response.get("content", "").strip()
+    if not title:
+        return (prompt or "Prompt").strip()[:20] or "Prompt"
+
+    return title
+
+
 async def generate_initial_prompt(objective: str) -> str:
     """
     Generate an initial prompt based on user objective.
@@ -32,9 +68,9 @@ Return ONLY the generated prompt text, without any meta-commentary or explanatio
     # Use fast, cheap model for generation
     response = await query_model(GENERATOR_MODEL, messages, timeout=60.0)
 
-    if response is None:
-        # Fallback to a basic template
-        return f"Please help me with: {objective}"
+    # If generation fails, bubble up so caller can handle stage rollback/retry
+    if response is None or not response.get('content'):
+        raise RuntimeError("Initial prompt generation failed")
 
     return response.get('content', '').strip()
 

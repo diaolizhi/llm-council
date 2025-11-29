@@ -9,6 +9,7 @@ import uuid
 from . import storage
 from .optimizer import (
     generate_initial_prompt,
+    generate_prompt_title,
     test_prompt_with_models,
     collect_improvement_suggestions,
     merge_suggestions,
@@ -78,7 +79,11 @@ class SessionMetadata(BaseModel):
     id: str
     created_at: str
     title: str
+    prompt_title: Optional[str] = None
+    current_version: int
+    stage: str
     iteration_count: int
+    version_count: int
     last_modified: str
 
 
@@ -88,6 +93,9 @@ class Session(BaseModel):
     created_at: str
     title: str
     objective: Optional[str]
+    prompt_title: Optional[str] = None
+    current_version: int = 0
+    stage: str = "init"
     iterations: List[Dict[str, Any]]
 
 
@@ -143,7 +151,11 @@ async def initialize_prompt(session_id: str, request: InitializePromptRequest):
     if request.mode == "generate":
         if not request.objective:
             raise HTTPException(status_code=400, detail="Objective required for generate mode")
-        prompt = await generate_initial_prompt(request.objective)
+        try:
+            prompt = await generate_initial_prompt(request.objective)
+        except Exception:
+            # Do not advance stage; allow user to retry generation
+            raise HTTPException(status_code=502, detail="Failed to generate initial prompt. Please retry.")
         change_rationale = f"Generated from objective: {request.objective}"
     elif request.mode == "provide":
         if not request.prompt:
@@ -153,16 +165,30 @@ async def initialize_prompt(session_id: str, request: InitializePromptRequest):
     else:
         raise HTTPException(status_code=400, detail="Mode must be 'generate' or 'provide'")
 
-    # Create first iteration
+    # Generate title (with fallback) and create first version
+    try:
+        prompt_title = await generate_prompt_title(prompt)
+    except Exception:
+        prompt_title = (prompt or "Prompt")[:20] or "Prompt"
+
     session = storage.add_iteration(
         session_id,
         prompt=prompt,
-        change_rationale=change_rationale
+        change_rationale=change_rationale,
+        metadata={"prompt_title": prompt_title}
+    )
+
+    # Advance stage only after successful creation
+    session = storage.update_session_meta(
+        session_id,
+        stage="title_ready"
     )
 
     return {
         "prompt": prompt,
         "version": 1,
+        "title": session.get("prompt_title"),
+        "stage": session.get("stage"),
         "session": session
     }
 
@@ -194,9 +220,13 @@ async def test_prompt(session_id: str, request: TestPromptRequest):
         test_results
     )
 
+    # Advance stage after successful testing
+    session = storage.update_session_meta(session_id, stage="tested")
+
     return {
         "version": iteration["version"],
-        "test_results": test_results
+        "test_results": test_results,
+        "stage": session.get("stage")
     }
 
 
@@ -305,7 +335,11 @@ async def create_new_iteration(session_id: str, request: CreateIterationRequest)
         session_id,
         prompt=request.prompt,
         change_rationale=request.change_rationale,
-        user_decision=request.user_decision
+        user_decision=request.user_decision,
+        metadata={
+            "prompt_title": session.get("prompt_title"),
+            "stage": "title_ready"
+        }
     )
 
     # Get the new iteration
@@ -313,6 +347,8 @@ async def create_new_iteration(session_id: str, request: CreateIterationRequest)
 
     return {
         "version": new_iteration["version"],
+        "stage": session.get("stage"),
+        "title": session.get("prompt_title"),
         "iteration": new_iteration,
         "session": session
     }

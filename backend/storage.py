@@ -39,6 +39,9 @@ def create_session(session_id: str, title: str = "New Optimization Session", obj
         "created_at": datetime.now().isoformat(),
         "title": title,
         "objective": objective,
+        "prompt_title": None,
+        "current_version": 0,
+        "stage": "init",
         "iterations": []
     }
 
@@ -63,7 +66,14 @@ def get_session(session_id: str) -> Optional[Dict[str, Any]]:
         return None
 
     with open(path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+        session = json.load(f)
+
+    # Backfill defaults for older sessions
+    session.setdefault("prompt_title", None)
+    session.setdefault("current_version", len(session.get("iterations", [])))
+    session.setdefault("stage", "init")
+
+    return session
 
 
 def list_sessions() -> List[Dict[str, Any]]:
@@ -82,12 +92,18 @@ def list_sessions() -> List[Dict[str, Any]]:
             session = get_session(session_id)
             if session:
                 # Return metadata only
+                iteration_count = len(session.get("iterations", []))
+                last_modified = session.get("iterations", [{}])[-1].get("timestamp", session["created_at"]) if session.get("iterations") else session["created_at"]
                 sessions.append({
                     "id": session["id"],
                     "created_at": session["created_at"],
                     "title": session["title"],
-                    "iteration_count": len(session.get("iterations", [])),
-                    "last_modified": session.get("iterations", [{}])[-1].get("timestamp", session["created_at"]) if session.get("iterations") else session["created_at"]
+                    "prompt_title": session.get("prompt_title"),
+                    "current_version": session.get("current_version", iteration_count),
+                    "stage": session.get("stage", "init"),
+                    "iteration_count": iteration_count,
+                    "version_count": iteration_count,
+                    "last_modified": last_modified
                 })
 
     # Sort by last modified, most recent first
@@ -116,7 +132,8 @@ def add_iteration(
     change_rationale: str,
     test_results: Optional[List[Dict[str, Any]]] = None,
     suggestions: Optional[List[Dict[str, Any]]] = None,
-    user_decision: Optional[str] = None
+    user_decision: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     Add a new iteration to a session.
@@ -128,6 +145,7 @@ def add_iteration(
         test_results: Optional test results with model outputs, ratings, feedback
         suggestions: Optional improvement suggestions from models
         user_decision: Optional user decision (accepted/modified/rejected)
+        metadata: Optional session-level metadata to update (e.g., prompt_title, stage)
 
     Returns:
         The complete updated session
@@ -150,6 +168,11 @@ def add_iteration(
     }
 
     session["iterations"].append(iteration)
+
+    # Update session-level metadata
+    session["current_version"] = version
+    if metadata:
+        session.update(metadata)
 
     with open(_get_session_path(session_id), 'w', encoding='utf-8') as f:
         json.dump(session, f, indent=2, ensure_ascii=False)
@@ -291,3 +314,27 @@ def get_latest_iteration(session_id: str) -> Optional[Dict[str, Any]]:
         return None
 
     return session["iterations"][-1]
+
+
+def update_session_meta(session_id: str, **fields) -> Dict[str, Any]:
+    """
+    Update session-level metadata fields.
+
+    Args:
+        session_id: The session ID
+        fields: Key/value pairs to merge into the session
+
+    Returns:
+        Updated session dict
+    """
+    session = get_session(session_id)
+    if not session:
+        raise ValueError(f"Session {session_id} not found")
+
+    for key, value in fields.items():
+        session[key] = value
+
+    with open(_get_session_path(session_id), 'w', encoding='utf-8') as f:
+        json.dump(session, f, indent=2, ensure_ascii=False)
+
+    return session

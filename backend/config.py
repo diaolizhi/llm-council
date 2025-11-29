@@ -19,7 +19,7 @@ TEST_MODELS = [
 SYNTHESIZER_MODEL = "x-ai/grok-4.1-fast:free"
 
 # Generator model - generates initial prompts from objectives
-GENERATOR_MODEL = "google/gemini-2.0-flash-exp:free"
+GENERATOR_MODEL = "x-ai/grok-4.1-fast:free"
 
 # OpenRouter API endpoint
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
