@@ -77,8 +77,8 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge, streaming = fals
   return (
     <div className="suggestion-aggregator">
       <div className="suggestions-header">
-        <h3>{t('suggestions.header', { count: suggestions.length })}</h3>
-        {!streaming && (
+        <h3>{t('suggestions.title')}</h3>
+        {!streaming && suggestions.length > 1 && (
           <div className="merge-controls">
             <button
               className="merge-btn"
@@ -147,9 +147,8 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge, streaming = fals
                 key={suggestion.model}
                 className={`suggestion-panel ${activeTab === index ? 'active' : ''}`}
               >
-                <div className="suggestion-header">
-                  <h4>{suggestion.model}</h4>
-                  {!streaming && originalPrompt && (
+                {!streaming && originalPrompt && (
+                  <div className="suggestion-header">
                     <div className="view-mode-toggle">
                       <button
                         className={`view-mode-btn ${viewMode === 'content' ? 'active' : ''}`}
@@ -164,8 +163,8 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge, streaming = fals
                         {t('suggestions.viewDiff') || 'Diff 对比'}
                       </button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {viewMode === 'content' ? (
                   <div className="suggestion-full-content">

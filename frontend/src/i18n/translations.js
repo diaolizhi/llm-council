@@ -358,6 +358,7 @@ export const TRANSLATIONS = {
     'outputRating.quick.needsMoreDetail': '需要更多细节',
     'outputRating.ratingLabel': '{{rating}}/5',
 
+    'suggestions.title': '改进建议',
     'suggestions.header': '改进建议（{{count}} 个模型）',
     'suggestions.merge': '合并所有建议',
     'suggestions.merging': '正在合并...',
