@@ -37,6 +37,9 @@ jobs:
           npm install
           npm run build
 
+      - name: Prepare data directory
+        run: mkdir -p data/sessions
+
       - name: Build macOS app (Apple Silicon)
         run: |
           uv run pyinstaller llm-council.spec --noconfirm
@@ -89,9 +92,12 @@ jobs:
           npm install
           npm run build
 
+      - name: Prepare data directory
+        run: mkdir -p data/sessions
+
       - name: Build macOS app (Intel)
         run: |
-          uv run pyinstaller llm-council.spec --noconfirm --target-arch=x86_64
+          uv run pyinstaller llm-council.spec --noconfirm
 
       - name: Create DMG
         run: |
@@ -141,6 +147,9 @@ jobs:
           cd frontend
           npm install
           npm run build
+
+      - name: Prepare data directory
+        run: mkdir -p data/sessions
 
       - name: Build Windows app
         run: |
@@ -194,6 +203,9 @@ jobs:
           cd frontend
           npm install
           npm run build
+
+      - name: Prepare data directory
+        run: mkdir -p data/sessions
 
       - name: Build Linux app
         run: |
