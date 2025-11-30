@@ -120,7 +120,7 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
       setShowManualModal(false);
     } catch (error) {
       console.error('Error creating manual version:', error);
-      showError(t('iteration.alert.iterateFail'));
+      showError(error.message || t('iteration.alert.iterateFail'));
     } finally {
       setIsSavingManual(false);
     }
@@ -136,7 +136,7 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
       });
     } catch (error) {
       console.error('Error initializing:', error);
-      showError(t('iteration.alert.initFail'));
+      showError(error.message || t('iteration.alert.initFail'));
     } finally {
       setIsInitializing(false);
     }
@@ -209,7 +209,7 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
       }
     } catch (error) {
       console.error('Error saving test sample:', error);
-      showError(t('iteration.test.saveSampleFail'));
+      showError(error.message || t('iteration.test.saveSampleFail'));
     } finally {
       setIsSavingSample(false);
     }
@@ -231,7 +231,7 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
       setSampleNotes(nextSample?.notes || '');
     } catch (error) {
       console.error('Error deleting test sample:', error);
-      showError(t('iteration.test.deleteSampleFail'));
+      showError(error.message || t('iteration.test.deleteSampleFail'));
     } finally {
       setIsDeletingSample(false);
     }
@@ -249,7 +249,7 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
       await onAction('test', { test_sample_id: selectedSampleId });
     } catch (error) {
       console.error('Error testing:', error);
-      showError(t('iteration.alert.testFail'));
+      showError(error.message || t('iteration.alert.testFail'));
     } finally {
       setIsTesting(false);
       setIsResettingDependentData(false);
@@ -286,7 +286,7 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
       await onAction('suggest', {});
     } catch (error) {
       console.error('Error generating suggestions:', error);
-      showError(t('iteration.alert.suggestFail'));
+      showError(error.message || t('iteration.alert.suggestFail'));
     } finally {
       setIsGeneratingSuggestions(false);
     }
@@ -361,7 +361,9 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
             onClick={handleInitialize}
             disabled={isInitializing || (initMode === 'generate' && !objective.trim()) || (initMode === 'provide' && !currentPrompt.trim())}
           >
-            {isInitializing ? t('iteration.init.initializing') : t('iteration.init.initButton')}
+            {isInitializing
+              ? (initMode === 'generate' ? t('iteration.init.initializingPrompt') : t('iteration.init.initializingTitle'))
+              : t('iteration.init.initButton')}
           </button>
         </div>
       </div>

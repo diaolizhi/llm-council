@@ -334,9 +334,12 @@
 .test-sample-summary-body pre {
   margin: 8px 0 0 0;
   white-space: pre-wrap;
+  word-break: break-all;
   font-family: inherit;
   font-size: 14px;
   color: #1f1f1f;
+  max-height: 120px;
+  overflow-y: auto;
 }
 
 .sample-modal-backdrop {
@@ -385,6 +388,9 @@
   flex-direction: column;
   gap: 10px;
   background: #f9fafb;
+  overflow-y: auto;
+  max-height: 60vh;
+  min-width: 0;
 }
 
 .sample-card {
@@ -430,6 +436,10 @@
   font-size: 13px;
   color: #1f2937;
   white-space: pre-wrap;
+  word-break: break-all;
+  overflow: hidden;
+  max-height: 80px;
+  text-overflow: ellipsis;
 }
 
 .sample-card-actions {

@@ -177,9 +177,10 @@ function SettingsView({ onClose }) {
             <input
               type="text"
               value={settings.openrouter_api_key || ''}
-              onChange={(event) =>
-                setSettings((prev) => ({ ...prev, openrouter_api_key: event.target.value }))
-              }
+              onChange={(event) => {
+                setSettings((prev) => ({ ...prev, openrouter_api_key: event.target.value }));
+                setIsDirty(true);
+              }}
               placeholder={t('settings.openRouterKeyPlaceholder')}
             />
             <small>{t('settings.openRouterKeyHelp')}</small>
@@ -218,9 +219,10 @@ function SettingsView({ onClose }) {
             <input
               type="text"
               value={settings.generator_model || ''}
-              onChange={(event) =>
-                setSettings((prev) => ({ ...prev, generator_model: event.target.value }))
-              }
+              onChange={(event) => {
+                setSettings((prev) => ({ ...prev, generator_model: event.target.value }));
+                setIsDirty(true);
+              }}
             />
           </div>
 
@@ -229,9 +231,10 @@ function SettingsView({ onClose }) {
             <input
               type="text"
               value={settings.synthesizer_model || ''}
-              onChange={(event) =>
-                setSettings((prev) => ({ ...prev, synthesizer_model: event.target.value }))
-              }
+              onChange={(event) => {
+                setSettings((prev) => ({ ...prev, synthesizer_model: event.target.value }));
+                setIsDirty(true);
+              }}
             />
           </div>
         </div>

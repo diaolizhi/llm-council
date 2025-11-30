@@ -16,18 +16,18 @@ async def generate_prompt_title(prompt: str) -> str:
     Returns:
         A short title string
     """
-    # Keep it short and direct for UI display
-    template = get_builtin_prompt("title-generator") or """You are a prompt titling assistant.
-Generate a concise, 4-12 character (or word-equivalent) title that summarizes the following prompt.
-Return ONLY the title text without quotes or explanations."""
+    # Truncate prompt to reduce tokens and speed up generation
+    truncated = prompt[:300] if len(prompt) > 300 else prompt
 
-    messages = [{"role": "user", "content": f"{template}\n\nPrompt:\n{prompt}"}]
+    template = get_builtin_prompt("title-generator") or "用3-8个字概括以下内容，只输出标题："
+
+    messages = [{"role": "user", "content": f"{template}\n{truncated}"}]
 
     settings = get_settings()
     generator_model = settings.get("generator_model") or GENERATOR_MODEL
 
     try:
-        response = await query_model(generator_model, messages, timeout=30.0)
+        response = await query_model(generator_model, messages, timeout=15.0)
     except Exception:
         response = None
 
@@ -71,8 +71,12 @@ Return ONLY the generated prompt text, without any meta-commentary or explanatio
     response = await query_model(generator_model, messages, timeout=60.0)
 
     # If generation fails, bubble up so caller can handle stage rollback/retry
-    if response is None or not response.get('content'):
-        raise RuntimeError("Initial prompt generation failed")
+    if response is None:
+        raise RuntimeError("Initial prompt generation failed: No response from model")
+    if 'error' in response:
+        raise RuntimeError(f"Initial prompt generation failed: {response['error']}")
+    if not response.get('content'):
+        raise RuntimeError("Initial prompt generation failed: Empty response from model")
 
     return response.get('content', '').strip()
 
@@ -114,7 +118,7 @@ async def test_prompt_with_models(
     # Format results
     test_results = []
     for model, response in responses.items():
-        if response is not None:
+        if response is not None and 'error' not in response:
             test_results.append({
                 "model": model,
                 "output": response.get('content', ''),
@@ -123,14 +127,16 @@ async def test_prompt_with_models(
                 "feedback": None  # Will be filled in by user
             })
         else:
-            # Include failures for transparency
+            # Include failures for transparency with detailed error message
+            error_detail = response.get('error', 'Model failed to respond') if response else 'Model failed to respond'
             test_results.append({
                 "model": model,
-                "output": "[Error: Model failed to respond]",
+                "output": f"[Error: {error_detail}]",
                 "response_time": 0,
                 "rating": None,
                 "feedback": None,
-                "error": True
+                "error": True,
+                "error_detail": error_detail
             })
 
     return test_results
@@ -262,6 +268,10 @@ Return ONLY the improved prompt text wrapped in <prompt>...</prompt> XML tags wi
 
     if response is None:
         # Fallback: return first suggestion's content
+        return suggestions[0]["suggestion"] if suggestions else current_prompt
+
+    if 'error' in response:
+        # Fallback with error info: return first suggestion's content
         return suggestions[0]["suggestion"] if suggestions else current_prompt
 
     return response.get('content', '').strip()

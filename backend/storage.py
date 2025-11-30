@@ -7,8 +7,8 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 
-# Data directory for session storage
-DATA_DIR = "data/sessions"
+# Data directory for session storage (in user's home directory)
+DATA_DIR = os.path.join(os.path.expanduser("~"), ".llm-council", "sessions")
 
 
 def _ensure_data_dir():
