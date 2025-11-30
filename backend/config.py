@@ -27,6 +27,11 @@ OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 # Data directory for session storage
 DATA_DIR = "data/sessions"
 
+# Request timeout configuration (in seconds)
+DEFAULT_TIMEOUT = 300.0  # 5 minutes for general requests
+TITLE_GENERATION_TIMEOUT = 30.0  # 30 seconds for title generation
+QUICK_GENERATION_TIMEOUT = 120.0  # 2 minutes for quick generation tasks
+
 # Legacy: Keep old config names for backward compatibility (will be removed)
 COUNCIL_MODELS = TEST_MODELS  # Deprecated
 CHAIRMAN_MODEL = SYNTHESIZER_MODEL  # Deprecated
