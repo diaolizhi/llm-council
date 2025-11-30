@@ -22,7 +22,6 @@ from .optimizer import (
     calculate_iteration_metrics,
     create_version_diff
 )
-from .config import TEST_MODELS
 from .settings import get_settings, save_settings
 
 app = FastAPI(title="Prompt Optimizer API")
@@ -420,8 +419,12 @@ async def test_prompt(session_id: str, request: TestPromptRequest):
     if not sample:
         raise HTTPException(status_code=404, detail="Test sample not found")
 
-    # Use provided models or default to TEST_MODELS
-    models = request.models if request.models else TEST_MODELS
+    # Use provided models or default to settings
+    if request.models:
+        models = request.models
+    else:
+        settings = get_settings()
+        models = settings.get("test_models", [])
 
     # Test the prompt
     test_results = await test_prompt_with_models(
@@ -477,9 +480,9 @@ async def test_prompt_stream(session_id: str, request: TestPromptRequest):
     if not sample:
         raise HTTPException(status_code=404, detail="Test sample not found")
 
-    # Use provided models or default to TEST_MODELS
+    # Use provided models or default to settings
     settings = get_settings()
-    models = request.models if request.models else (settings.get("test_models") or TEST_MODELS)
+    models = request.models if request.models else settings.get("test_models", [])
 
     # Prepare messages
     test_input = sample.get("input")

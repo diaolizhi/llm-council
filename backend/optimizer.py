@@ -2,7 +2,7 @@
 
 from typing import List, Dict, Any, Optional
 from .openrouter import query_models_parallel, query_model
-from .config import TEST_MODELS, SYNTHESIZER_MODEL, GENERATOR_MODEL, TITLE_GENERATION_TIMEOUT, QUICK_GENERATION_TIMEOUT
+from .config import TITLE_GENERATION_TIMEOUT, QUICK_GENERATION_TIMEOUT
 from .settings import get_settings, get_builtin_prompt
 
 
@@ -24,7 +24,7 @@ async def generate_prompt_title(prompt: str) -> str:
     messages = [{"role": "user", "content": f"{template}\n{truncated}"}]
 
     settings = get_settings()
-    generator_model = settings.get("generator_model") or GENERATOR_MODEL
+    generator_model = settings.get("generator_model", "x-ai/grok-4.1-fast:free")
 
     try:
         response = await query_model(generator_model, messages, timeout=TITLE_GENERATION_TIMEOUT)
@@ -67,7 +67,7 @@ Return ONLY the generated prompt text, without any meta-commentary or explanatio
 
     # Use fast, cheap model for generation
     settings = get_settings()
-    generator_model = settings.get("generator_model") or GENERATOR_MODEL
+    generator_model = settings.get("generator_model", "x-ai/grok-4.1-fast:free")
     response = await query_model(generator_model, messages, timeout=QUICK_GENERATION_TIMEOUT)
 
     # If generation fails, bubble up so caller can handle stage rollback/retry
@@ -91,7 +91,7 @@ async def test_prompt_with_models(
 
     Args:
         prompt: The prompt to test
-        models: List of model identifiers (defaults to TEST_MODELS)
+        models: List of model identifiers (defaults to test_models from settings)
         test_input: Optional test input to use with the prompt
 
     Returns:
@@ -99,7 +99,7 @@ async def test_prompt_with_models(
     """
     if models is None:
         settings = get_settings()
-        models = settings.get("test_models") or TEST_MODELS
+        models = settings.get("test_models", [])
 
     # Prepare messages
     if test_input:
@@ -270,7 +270,7 @@ Return your response in the following format:
 
     # Use synthesizer model
     settings = get_settings()
-    synthesizer_model = settings.get("synthesizer_model") or SYNTHESIZER_MODEL
+    synthesizer_model = settings.get("synthesizer_model", "x-ai/grok-4.1-fast:free")
     response = await query_model(synthesizer_model, messages, timeout=QUICK_GENERATION_TIMEOUT)
 
     if response is None:
