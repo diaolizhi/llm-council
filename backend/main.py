@@ -224,6 +224,19 @@ async def update_app_settings(request: SettingsUpdateRequest):
     return save_settings(updates)
 
 
+@app.post("/api/settings/reset", response_model=SettingsResponse)
+async def reset_app_settings():
+    """Reset application settings to defaults."""
+    from .settings import DEFAULT_SETTINGS, _write_settings
+    from copy import deepcopy
+
+    default = deepcopy(DEFAULT_SETTINGS)
+    default["openrouter_api_key"] = None
+
+    _write_settings(default)
+    return default
+
+
 @app.get("/api/sessions", response_model=List[SessionMetadata])
 async def list_sessions():
     """List all optimization sessions (metadata only)."""

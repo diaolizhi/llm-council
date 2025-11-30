@@ -43,6 +43,15 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
     return text.trim();
   };
 
+  const extractAnalysis = (text) => {
+    if (!text) return '';
+    const match = text.match(/<analysis>([\s\S]*?)<\/analysis>/i);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+    return '';
+  };
+
   const handleAcceptSuggestion = async (suggestion) => {
     if (!onAccept) return;
     setIsSavingAccepted(true);
@@ -102,8 +111,10 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
               {t('suggestions.viewIndividuals')}
             </button>
           </div>
-          <div className="merged-content">
-            <pre className="merged-prompt">{mergedPrompt}</pre>
+          <div className="suggestion-full-content">
+            <div className="markdown-content">
+              <ReactMarkdown>{mergedPrompt}</ReactMarkdown>
+            </div>
           </div>
           <div className="merged-actions">
             <button className="accept-btn primary" onClick={handleAcceptMerged} disabled={isSavingAccepted}>
@@ -135,8 +146,10 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
                   <h4>{suggestion.model}</h4>
                 </div>
 
-                <div className="markdown-content suggestion-text">
-                  <ReactMarkdown>{suggestion.suggestion}</ReactMarkdown>
+                <div className="suggestion-full-content">
+                  <div className="markdown-content">
+                    <ReactMarkdown>{suggestion.suggestion}</ReactMarkdown>
+                  </div>
                 </div>
 
                 <div className="suggestion-actions">

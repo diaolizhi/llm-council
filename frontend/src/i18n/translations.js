@@ -35,6 +35,11 @@ export const TRANSLATIONS = {
     'settings.removePrompt': 'Remove',
     'settings.save': 'Save Settings',
     'settings.saving': 'Saving...',
+    'settings.reset': 'Reset to Defaults',
+    'settings.resetting': 'Resetting...',
+    'settings.resetConfirm': 'Are you sure you want to reset all settings to defaults? This cannot be undone.',
+    'settings.resetSuccess': 'Settings have been reset to defaults.',
+    'settings.resetError': 'Failed to reset settings.',
     'settings.loading': 'Loading settings...',
     'settings.saveSuccess': 'Settings saved.',
     'settings.saveError': 'Failed to save settings.',
@@ -76,6 +81,10 @@ export const TRANSLATIONS = {
     'iteration.stage.titleReady': 'Ready for testing',
     'iteration.stage.tested': 'Tested',
 
+    'iteration.tabs.prompt': 'Prompt',
+    'iteration.tabs.test': 'Test',
+    'iteration.tabs.suggestions': 'Suggestions',
+
     'iteration.test.stepTitle': 'Step 1: Test Your Prompt',
     'iteration.test.stepDescription': 'Select a saved test sample from your test set and run the prompt against it.',
     'iteration.test.button': 'Test Prompt with LLMs',
@@ -110,6 +119,7 @@ export const TRANSLATIONS = {
       'Based on the test results and your feedback, get suggestions from all LLMs.',
     'iteration.suggestions.button': 'Generate Improvement Suggestions',
     'iteration.suggestions.generating': 'Generating Suggestions...',
+    'iteration.suggestions.needTest': 'Please run a test first before generating suggestions.',
     'iteration.manual.create': 'New version',
     'iteration.manual.title': 'Create a new version',
     'iteration.manual.newPrompt': 'Prompt for the new version',
@@ -146,6 +156,9 @@ export const TRANSLATIONS = {
     'suggestions.useSingle': 'Use This Suggestion',
     'suggestions.none': 'No suggestions yet. Generate suggestions first.',
     'suggestions.mergeFail': 'Failed to merge suggestions. Please try again.',
+    'suggestions.analysis': 'Analysis',
+    'suggestions.improvedPrompt': 'Improved Prompt',
+    'suggestions.noAnalysis': 'No analysis available.',
 
     // Legacy UI
     'legacy.chat.welcomeTitle': 'Welcome to LLM Council',
@@ -214,6 +227,11 @@ export const TRANSLATIONS = {
     'settings.removePrompt': '移除',
     'settings.save': '保存设置',
     'settings.saving': '保存中…',
+    'settings.reset': '重置设置',
+    'settings.resetting': '重置中…',
+    'settings.resetConfirm': '确定要将所有设置重置为默认值吗？此操作无法撤销。',
+    'settings.resetSuccess': '设置已重置为默认值。',
+    'settings.resetError': '重置设置失败。',
     'settings.loading': '正在加载设置…',
     'settings.saveSuccess': '设置已保存。',
     'settings.saveError': '保存失败，请重试。',
@@ -255,6 +273,10 @@ export const TRANSLATIONS = {
     'iteration.stage.titleReady': '可测试',
     'iteration.stage.tested': '已测试',
 
+    'iteration.tabs.prompt': '提示词',
+    'iteration.tabs.test': '测试',
+    'iteration.tabs.suggestions': '改进建议',
+
     'iteration.test.stepTitle': '步骤 1：测试你的提示词',
     'iteration.test.stepDescription': '从测试集选择一个保存的样例，使用它来测试提示词并记录结果。',
     'iteration.test.button': '使用 LLM 测试提示词',
@@ -288,6 +310,7 @@ export const TRANSLATIONS = {
     'iteration.suggestions.stepDescription': '基于测试结果和你的反馈，从所有 LLM 获取改进建议。',
     'iteration.suggestions.button': '生成改进建议',
     'iteration.suggestions.generating': '正在生成建议...',
+    'iteration.suggestions.needTest': '请先运行测试后再生成改进建议。',
     'iteration.manual.create': '新建版本',
     'iteration.manual.title': '创建新版本',
     'iteration.manual.newPrompt': '新版本的提示词',
@@ -324,6 +347,9 @@ export const TRANSLATIONS = {
     'suggestions.useSingle': '使用该建议',
     'suggestions.none': '暂未有建议，请先生成建议。',
     'suggestions.mergeFail': '合并建议失败，请重试。',
+    'suggestions.analysis': '原因分析与改进措施',
+    'suggestions.improvedPrompt': '改进后的提示词',
+    'suggestions.noAnalysis': '暂无分析内容。',
 
     // Legacy UI
     'legacy.chat.welcomeTitle': '欢迎来到 LLM Council',

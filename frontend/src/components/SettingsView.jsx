@@ -9,6 +9,7 @@ function SettingsView({ onClose }) {
   const [modelsInput, setModelsInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [status, setStatus] = useState(null);
   const [isDirty, setIsDirty] = useState(false);
   const [expandedPromptId, setExpandedPromptId] = useState(null);
@@ -132,6 +133,26 @@ function SettingsView({ onClose }) {
     }
   };
 
+  const handleReset = async () => {
+    if (!window.confirm(t('settings.resetConfirm'))) {
+      return;
+    }
+    setIsResetting(true);
+    setStatus(null);
+    try {
+      const data = await api.resetSettings();
+      setSettings(data);
+      setModelsInput((data.test_models || []).join('\n'));
+      setIsDirty(false);
+      setStatus({ type: 'success', message: t('settings.resetSuccess') });
+    } catch (error) {
+      console.error('Failed to reset settings', error);
+      setStatus({ type: 'error', message: t('settings.resetError') });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   if (!settings) {
     return (
       <div className="settings-view">
@@ -155,6 +176,9 @@ function SettingsView({ onClose }) {
         </div>
         <div className="settings-actions">
           {isDirty && <span className="settings-dirty">{t('settings.unsaved')}</span>}
+          <button className="settings-reset" onClick={handleReset} disabled={isResetting}>
+            {isResetting ? t('settings.resetting') : t('settings.reset')}
+          </button>
           <button className="settings-close" onClick={onClose}>
             {t('settings.back')}
           </button>

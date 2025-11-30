@@ -257,7 +257,14 @@ Your task:
 3. Create a single, improved version of the prompt that incorporates the best ideas
 4. Ensure the improved prompt is cohesive and well-structured
 
-Return ONLY the improved prompt text wrapped in <prompt>...</prompt> XML tags with no explanation outside the tag. If you include any notes, keep them inside an XML comment after the tag."""
+Return your response in the following format:
+<analysis>
+原因分析：[分析当前 prompt 存在的问题]
+改进措施：[说明你做了哪些改进]
+</analysis>
+<prompt>
+[改进后的完整 prompt]
+</prompt>"""
 
     messages = [{"role": "user", "content": merge_prompt}]
 

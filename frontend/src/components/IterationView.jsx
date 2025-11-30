@@ -28,6 +28,7 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
   const [showSampleModal, setShowSampleModal] = useState(false);
   const [editingSampleId, setEditingSampleId] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
+  const [mainTab, setMainTab] = useState('prompt'); // 'prompt', 'test', 'suggestions'
   const { t } = useI18n();
 
   const sortedIterations = (session?.iterations || []).slice().sort((a, b) => b.version - a.version);
@@ -51,7 +52,7 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
   const selectedSampleTitle = selectedSample?.title || '';
   const isHidingDependentData = isResettingDependentData || isTesting || selectedSampleMismatch;
   const visibleTestResults = isHidingDependentData ? [] : (activeIteration?.test_results || []);
-  const visibleSuggestions = isHidingDependentData ? [] : (activeIteration?.suggestions || []);
+  const visibleSuggestions = (isHidingDependentData || isGeneratingSuggestions) ? [] : (activeIteration?.suggestions || []);
 
   const stageLabels = {
     init: t('iteration.stage.init'),
@@ -409,86 +410,120 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
         </div>
       </div>
 
-      <PromptEditor
-        prompt={activeIteration.prompt}
-        version={activeIteration.version}
-        readOnly={true}
-      />
-
-      <div className="action-section">
-        <h3>{t('iteration.test.stepTitle')}</h3>
-        <p>{t('iteration.test.stepDescription')}</p>
-
-        <div className="sample-select-row">
-          <label className="sample-label">{t('iteration.test.sampleSelectLabel')}</label>
-          <select
-            value={selectedSampleId || ''}
-            onChange={(e) => handleSelectSample(e.target.value || null)}
-            className="sample-select"
-          >
-            <option value="">{t('iteration.test.selectPlaceholder')}</option>
-            {testSamples.map((sample) => (
-              <option key={sample.id} value={sample.id}>
-                {sample.title || t('iteration.test.defaultSampleTitle')}
-              </option>
-            ))}
-          </select>
-          <button className="secondary-btn" onClick={openSampleModal}>
-            {t('iteration.test.manageSamples')}
-          </button>
-        </div>
-
-        <div className="test-runner">
-          <button
-            className="action-btn test-btn"
-            onClick={handleTest}
-            disabled={isTesting || !selectedSampleId || !selectedSampleInput.trim()}
-          >
-            {isTesting ? t('iteration.test.testing') : t('iteration.test.button')}
-          </button>
-          {selectedSampleMismatch && (
-            <p className="info-text">{t('iteration.test.sampleMismatch')}</p>
-          )}
-        </div>
+      <div className="main-tabs">
+        <button
+          className={`main-tab ${mainTab === 'prompt' ? 'active' : ''}`}
+          onClick={() => setMainTab('prompt')}
+        >
+          {t('iteration.tabs.prompt')}
+        </button>
+        <button
+          className={`main-tab ${mainTab === 'test' ? 'active' : ''}`}
+          onClick={() => setMainTab('test')}
+        >
+          {t('iteration.tabs.test')}
+        </button>
+        <button
+          className={`main-tab ${mainTab === 'suggestions' ? 'active' : ''}`}
+          onClick={() => setMainTab('suggestions')}
+        >
+          {t('iteration.tabs.suggestions')}
+        </button>
       </div>
 
-      {visibleTestResults && visibleTestResults.length > 0 && (
-        <>
-          <div className="test-sample-summary">
-            <div className="test-sample-summary-header">
-              <h4>{t('iteration.test.sampleSummaryTitle')}</h4>
-              {sampleUsedTitle && <span className="sample-title-chip">{sampleUsedTitle}</span>}
-            </div>
-            <div className="test-sample-summary-body">
-              <pre>{sampleUsedInput || t('iteration.test.noSampleInput')}</pre>
-            </div>
-          </div>
-          <TestResults
-            testResults={visibleTestResults}
-            onFeedbackChange={handleFeedbackChange}
+      <div className="main-tab-content">
+        {mainTab === 'prompt' && (
+          <PromptEditor
+            prompt={activeIteration.prompt}
+            version={activeIteration.version}
+            readOnly={true}
           />
+        )}
 
-          <div className="action-section">
-            <h3>{t('iteration.suggestions.stepTitle')}</h3>
-            <p>{t('iteration.suggestions.stepDescription')}</p>
-            <button
-              className="action-btn suggest-btn"
-              onClick={handleGenerateSuggestions}
-              disabled={isGeneratingSuggestions}
-            >
-              {isGeneratingSuggestions ? t('iteration.suggestions.generating') : t('iteration.suggestions.button')}
-            </button>
-          </div>
-        </>
-      )}
+        {mainTab === 'test' && (
+          <>
+            <div className="action-section">
+              <p>{t('iteration.test.stepDescription')}</p>
 
-      {visibleSuggestions && visibleSuggestions.length > 0 && (
-        <SuggestionAggregator
-          suggestions={visibleSuggestions}
-          onAccept={handleAcceptSuggestion}
-          onMerge={handleMergeSuggestions}
-        />
-      )}
+              <div className="sample-select-row">
+                <label className="sample-label">{t('iteration.test.sampleSelectLabel')}</label>
+                <select
+                  value={selectedSampleId || ''}
+                  onChange={(e) => handleSelectSample(e.target.value || null)}
+                  className="sample-select"
+                >
+                  <option value="">{t('iteration.test.selectPlaceholder')}</option>
+                  {testSamples.map((sample) => (
+                    <option key={sample.id} value={sample.id}>
+                      {sample.title || t('iteration.test.defaultSampleTitle')}
+                    </option>
+                  ))}
+                </select>
+                <button className="secondary-btn" onClick={openSampleModal}>
+                  {t('iteration.test.manageSamples')}
+                </button>
+              </div>
+
+              <div className="test-runner">
+                <button
+                  className="action-btn test-btn"
+                  onClick={handleTest}
+                  disabled={isTesting || !selectedSampleId || !selectedSampleInput.trim()}
+                >
+                  {isTesting ? t('iteration.test.testing') : t('iteration.test.button')}
+                </button>
+                {selectedSampleMismatch && (
+                  <p className="info-text">{t('iteration.test.sampleMismatch')}</p>
+                )}
+              </div>
+            </div>
+
+            {visibleTestResults && visibleTestResults.length > 0 && (
+              <>
+                <div className="test-sample-summary">
+                  <div className="test-sample-summary-header">
+                    <h4>{t('iteration.test.sampleSummaryTitle')}</h4>
+                    {sampleUsedTitle && <span className="sample-title-chip">{sampleUsedTitle}</span>}
+                  </div>
+                  <div className="test-sample-summary-body">
+                    <pre>{sampleUsedInput || t('iteration.test.noSampleInput')}</pre>
+                  </div>
+                </div>
+                <TestResults
+                  testResults={visibleTestResults}
+                  onFeedbackChange={handleFeedbackChange}
+                />
+              </>
+            )}
+          </>
+        )}
+
+        {mainTab === 'suggestions' && (
+          <>
+            <div className="action-section">
+              <p>{t('iteration.suggestions.stepDescription')}</p>
+              <button
+                className="action-btn suggest-btn"
+                onClick={handleGenerateSuggestions}
+                disabled={isGeneratingSuggestions || visibleTestResults.length === 0}
+              >
+                {isGeneratingSuggestions ? t('iteration.suggestions.generating') : t('iteration.suggestions.button')}
+              </button>
+              {visibleTestResults.length === 0 && (
+                <p className="info-text">{t('iteration.suggestions.needTest')}</p>
+              )}
+            </div>
+
+            {visibleSuggestions && visibleSuggestions.length > 0 && (
+              <SuggestionAggregator
+                suggestions={visibleSuggestions}
+                onAccept={handleAcceptSuggestion}
+                onMerge={handleMergeSuggestions}
+              />
+            )}
+          </>
+        )}
+      </div>
 
       {showManualModal && (
         <div className="manual-modal-backdrop" onClick={closeManualModal}>

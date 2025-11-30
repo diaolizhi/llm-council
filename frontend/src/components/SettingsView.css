@@ -59,6 +59,21 @@
   cursor: not-allowed;
 }
 
+.settings-reset {
+  background: #fff;
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
+.settings-reset:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.settings-reset:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .settings-form {
   background: #fff;
   border: 1px solid #e0e0e0;

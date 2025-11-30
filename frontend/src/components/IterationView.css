@@ -212,8 +212,8 @@
 }
 
 .sample-select {
-  flex: 1;
   min-width: 220px;
+  max-width: 400px;
   padding: 10px 14px;
   height: 44px;
   border-radius: 8px;
@@ -605,8 +605,8 @@
 }
 
 .action-section {
-  margin: 30px 0;
-  padding: 20px;
+  margin: 0;
+  padding: 12px;
   background-color: #f9f9f9;
   border-radius: 8px;
   border-left: 4px solid #4a90e2;
@@ -706,4 +706,41 @@
 
 .cancel-btn:hover:not(:disabled) {
   background-color: #5a6268;
+}
+
+/* Main tabs for switching between Prompt, Test, Suggestions */
+.main-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #e0e0e0;
+  margin-bottom: 0;
+}
+
+.main-tab {
+  padding: 14px 28px;
+  background-color: transparent;
+  color: #666;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.main-tab:hover {
+  color: #4a90e2;
+  background-color: #f5f8ff;
+}
+
+.main-tab.active {
+  color: #4a90e2;
+  border-bottom-color: #4a90e2;
+  background-color: #fff;
+}
+
+.main-tab-content {
+  padding: 15px 0;
+  min-height: 300px;
 }

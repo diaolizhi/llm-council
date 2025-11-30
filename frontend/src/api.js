@@ -350,4 +350,18 @@ export const api = {
     }
     return response.json();
   },
+
+  /**
+   * Reset application settings to defaults.
+   */
+  async resetSettings() {
+    const response = await fetch(`${API_BASE}/api/settings/reset`, {
+      method: 'POST',
+    });
+    if (!response.ok) {
+      const errorMsg = await extractErrorMessage(response, 'Failed to reset settings');
+      throw new Error(errorMsg);
+    }
+    return response.json();
+  },
 };
