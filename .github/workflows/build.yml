@@ -214,7 +214,7 @@ jobs:
       - name: Create tarball
         run: |
           cd dist
-          tar -czf LLM-Council-Linux.tar.gz "LLM Council"
+          tar -czf LLM-Council-Linux.tar.gz LLMCouncil
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
