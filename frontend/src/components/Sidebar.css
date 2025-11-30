@@ -163,3 +163,19 @@ button.footer-control:hover {
   background: #ffebee;
   color: #d32f2f;
 }
+
+.clear-all-btn {
+  color: #d32f2f;
+  border-color: #ffcdd2;
+}
+
+.clear-all-btn:hover:not(:disabled) {
+  background: #ffebee;
+  border-color: #d32f2f;
+}
+
+.clear-all-btn:disabled {
+  color: #bbb;
+  border-color: #e0e0e0;
+  cursor: not-allowed;
+}

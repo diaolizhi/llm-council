@@ -555,3 +555,22 @@ def delete_session(session_id: str):
         raise ValueError(f"Session {session_id} not found")
 
     os.remove(path)
+
+
+def delete_all_sessions() -> int:
+    """
+    Delete all sessions.
+
+    Returns:
+        Number of sessions deleted
+    """
+    _ensure_data_dir()
+
+    count = 0
+    for filename in os.listdir(DATA_DIR):
+        if filename.endswith('.json'):
+            path = os.path.join(DATA_DIR, filename)
+            os.remove(path)
+            count += 1
+
+    return count

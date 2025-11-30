@@ -130,6 +130,23 @@ function App() {
     }
   };
 
+  const handleClearAllSessions = async () => {
+    if (!window.confirm(t('sidebar.clearAllConfirm'))) {
+      return;
+    }
+
+    try {
+      await api.deleteAllSessions();
+      setSessions([]);
+      setCurrentSessionId(null);
+      setCurrentSession(null);
+      setCurrentVersion(null);
+    } catch (error) {
+      console.error('Failed to clear all sessions:', error);
+      alert(error.message || t('sidebar.clearAllFail'));
+    }
+  };
+
   const handleAction = async (action, data) => {
     if (!currentSessionId) return;
 
@@ -201,6 +218,7 @@ function App() {
         onSelectSession={handleSelectSession}
         onNewSession={handleNewSession}
         onDeleteSession={handleDeleteSession}
+        onClearAllSessions={handleClearAllSessions}
         onOpenSettings={handleOpenSettings}
       />
       <main className="main-content">

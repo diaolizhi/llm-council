@@ -7,6 +7,7 @@ export default function Sidebar({
   onSelectSession,
   onNewSession,
   onDeleteSession,
+  onClearAllSessions,
   onOpenSettings,
 }) {
   const { t, locale, setLocale } = useI18n();
@@ -75,6 +76,13 @@ export default function Sidebar({
         </select>
         <button className="footer-control" onClick={onOpenSettings}>
           {t('sidebar.settings')}
+        </button>
+        <button
+          className="footer-control clear-all-btn"
+          onClick={onClearAllSessions}
+          disabled={sessions.length === 0}
+        >
+          {t('sidebar.clearAll')}
         </button>
       </div>
     </div>

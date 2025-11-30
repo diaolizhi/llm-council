@@ -329,6 +329,13 @@ async def delete_session(session_id: str):
     return {"status": "deleted"}
 
 
+@app.delete("/api/sessions")
+async def delete_all_sessions():
+    """Delete all sessions."""
+    count = storage.delete_all_sessions()
+    return {"status": "deleted", "count": count}
+
+
 @app.post("/api/sessions/{session_id}/initialize")
 async def initialize_prompt(session_id: str, request: InitializePromptRequest):
     """

@@ -17,6 +17,9 @@ export const TRANSLATIONS = {
     'sidebar.delete': 'Delete',
     'sidebar.deleteConfirm': 'Are you sure you want to delete this session? This cannot be undone.',
     'sidebar.deleteFail': 'Failed to delete session. Please try again.',
+    'sidebar.clearAll': 'Clear All',
+    'sidebar.clearAllConfirm': 'Are you sure you want to delete ALL sessions? This cannot be undone.',
+    'sidebar.clearAllFail': 'Failed to clear all sessions. Please try again.',
 
     'settings.title': 'Settings',
     'settings.subtitle': 'Manage API keys, built-in prompts, and test models.',
@@ -212,6 +215,9 @@ export const TRANSLATIONS = {
     'sidebar.delete': '删除',
     'sidebar.deleteConfirm': '确定要删除此会话吗？此操作无法撤销。',
     'sidebar.deleteFail': '删除会话失败，请重试。',
+    'sidebar.clearAll': '清空全部',
+    'sidebar.clearAllConfirm': '确定要删除所有会话吗？此操作无法撤销。',
+    'sidebar.clearAllFail': '清空会话失败，请重试。',
 
     'settings.title': '设置',
     'settings.subtitle': '管理 API 密钥、内置提示词和测试模型。',
