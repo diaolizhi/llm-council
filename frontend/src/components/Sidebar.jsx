@@ -6,6 +6,7 @@ export default function Sidebar({
   currentSessionId,
   onSelectSession,
   onNewSession,
+  onOpenSettings,
 }) {
   const { t, locale, setLocale } = useI18n();
 
@@ -21,6 +22,9 @@ export default function Sidebar({
         </div>
         <button className="new-conversation-btn" onClick={onNewSession}>
           {t('sidebar.newSession')}
+        </button>
+        <button className="settings-btn" onClick={onOpenSettings}>
+          {t('sidebar.settings')}
         </button>
       </div>
 

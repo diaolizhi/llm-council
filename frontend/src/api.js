@@ -279,4 +279,32 @@ export const api = {
     }
     return response.json();
   },
+
+  /**
+   * Get current application settings.
+   */
+  async getSettings() {
+    const response = await fetch(`${API_BASE}/api/settings`);
+    if (!response.ok) {
+      throw new Error('Failed to load settings');
+    }
+    return response.json();
+  },
+
+  /**
+   * Save application settings.
+   */
+  async saveSettings(payload) {
+    const response = await fetch(`${API_BASE}/api/settings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to save settings');
+    }
+    return response.json();
+  },
 };

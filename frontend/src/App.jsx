@@ -4,6 +4,7 @@ import IterationView from './components/IterationView';
 import { api } from './api';
 import { useI18n } from './i18n/i18n.jsx';
 import './App.css';
+import SettingsView from './components/SettingsView';
 
 function App() {
   const [sessions, setSessions] = useState([]);
@@ -11,6 +12,7 @@ function App() {
   const [currentSession, setCurrentSession] = useState(null);
   const [currentVersion, setCurrentVersion] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
   const { t } = useI18n();
 
   // Load sessions on mount
@@ -95,6 +97,9 @@ function App() {
     }
   };
 
+  const handleOpenSettings = () => setShowSettings(true);
+  const handleCloseSettings = () => setShowSettings(false);
+
   const handleAction = async (action, data) => {
     if (!currentSessionId) return;
 
@@ -165,9 +170,12 @@ function App() {
         currentSessionId={currentSessionId}
         onSelectSession={handleSelectSession}
         onNewSession={handleNewSession}
+        onOpenSettings={handleOpenSettings}
       />
       <main className="main-content">
-        {currentSession ? (
+        {showSettings ? (
+          <SettingsView onClose={handleCloseSettings} />
+        ) : currentSession ? (
           <IterationView
             session={currentSession}
             activeVersion={currentVersion}

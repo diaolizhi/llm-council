@@ -3,6 +3,7 @@
 from typing import List, Dict, Any, Optional
 from .openrouter import query_models_parallel, query_model
 from .config import TEST_MODELS, SYNTHESIZER_MODEL, GENERATOR_MODEL
+from .settings import get_settings, get_builtin_prompt
 
 
 async def generate_prompt_title(prompt: str) -> str:
@@ -16,17 +17,17 @@ async def generate_prompt_title(prompt: str) -> str:
         A short title string
     """
     # Keep it short and direct for UI display
-    title_prompt = f"""You are a prompt titling assistant.
+    template = get_builtin_prompt("title-generator") or """You are a prompt titling assistant.
 Generate a concise, 4-12 character (or word-equivalent) title that summarizes the following prompt.
-Return ONLY the title text without quotes or explanations.
+Return ONLY the title text without quotes or explanations."""
 
-Prompt:
-{prompt}
-"""
-    messages = [{"role": "user", "content": title_prompt}]
+    messages = [{"role": "user", "content": f"{template}\n\nPrompt:\n{prompt}"}]
+
+    settings = get_settings()
+    generator_model = settings.get("generator_model") or GENERATOR_MODEL
 
     try:
-        response = await query_model(GENERATOR_MODEL, messages, timeout=30.0)
+        response = await query_model(generator_model, messages, timeout=30.0)
     except Exception:
         response = None
 
@@ -51,22 +52,23 @@ async def generate_initial_prompt(objective: str) -> str:
     Returns:
         Generated prompt text
     """
-    generation_prompt = f"""You are a prompt engineering expert. The user wants to create a prompt for the following purpose:
-
-{objective}
-
+    template = get_builtin_prompt("initial-prompt-generator") or """You are a prompt engineering expert. The user wants to create a prompt for the following purpose:
+{OBJECTIVE}
 Generate a well-structured, effective prompt that accomplishes this goal. The prompt should be:
 - Clear and specific
 - Include relevant context and instructions
 - Use effective prompt engineering techniques
 - Be ready to use with various LLMs
-
 Return ONLY the generated prompt text, without any meta-commentary or explanation."""
+
+    generation_prompt = template.replace("{OBJECTIVE}", objective)
 
     messages = [{"role": "user", "content": generation_prompt}]
 
     # Use fast, cheap model for generation
-    response = await query_model(GENERATOR_MODEL, messages, timeout=60.0)
+    settings = get_settings()
+    generator_model = settings.get("generator_model") or GENERATOR_MODEL
+    response = await query_model(generator_model, messages, timeout=60.0)
 
     # If generation fails, bubble up so caller can handle stage rollback/retry
     if response is None or not response.get('content'):
@@ -92,7 +94,8 @@ async def test_prompt_with_models(
         List of test results with model, output, response_time
     """
     if models is None:
-        models = TEST_MODELS
+        settings = get_settings()
+        models = settings.get("test_models") or TEST_MODELS
 
     # Prepare messages
     if test_input:
@@ -174,7 +177,9 @@ async def collect_improvement_suggestions(
 
     results_text = "\n\n".join(results_summary)
 
-    suggestion_prompt = f"""You are a prompt engineering expert. You are helping optimize the following prompt:
+    template = get_builtin_prompt("improvement-suggestion") or """You are a prompt engineering expert. You are helping optimize a prompt based on test results and feedback. Return ONLY the improved prompt text wrapped in <prompt>...</prompt> XML tags with no explanation outside the tag."""
+
+    suggestion_prompt = f"""{template}
 
 CURRENT PROMPT:
 {current_prompt}
@@ -183,12 +188,7 @@ This prompt was tested with multiple LLMs. Here are the results and user feedbac
 
 {results_text}
 
-Based on the test results and user feedback, suggest specific improvements to the prompt. Focus on:
-1. Addressing issues mentioned in the feedback
-2. Improving clarity and specificity
-3. Enhancing effectiveness based on the test outputs
-
-Return ONLY the improved prompt text wrapped in <prompt>...</prompt> XML tags with no explanation outside the tag. If you include any notes, keep them inside an XML comment after the tag."""
+Based on the test results and user feedback, suggest specific improvements to the prompt."""
 
     messages = [{"role": "user", "content": suggestion_prompt}]
 
@@ -256,7 +256,9 @@ Return ONLY the improved prompt text wrapped in <prompt>...</prompt> XML tags wi
     messages = [{"role": "user", "content": merge_prompt}]
 
     # Use synthesizer model
-    response = await query_model(SYNTHESIZER_MODEL, messages, timeout=60.0)
+    settings = get_settings()
+    synthesizer_model = settings.get("synthesizer_model") or SYNTHESIZER_MODEL
+    response = await query_model(synthesizer_model, messages, timeout=60.0)
 
     if response is None:
         # Fallback: return first suggestion's content

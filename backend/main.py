@@ -17,6 +17,7 @@ from .optimizer import (
     create_version_diff
 )
 from .config import TEST_MODELS
+from .settings import get_settings, save_settings
 
 app = FastAPI(title="Prompt Optimizer API")
 
@@ -88,6 +89,32 @@ class MergeSuggestionsRequest(BaseModel):
     user_preference: Optional[str] = None
 
 
+class BuiltInPrompt(BaseModel):
+    """Represents a built-in prompt template."""
+    id: str
+    title: str
+    description: Optional[str] = None
+    prompt: str
+
+
+class SettingsResponse(BaseModel):
+    """Response for application settings."""
+    openrouter_api_key: Optional[str] = None
+    built_in_prompts: List[BuiltInPrompt] = Field(default_factory=list)
+    test_models: List[str] = Field(default_factory=list)
+    synthesizer_model: str
+    generator_model: str
+
+
+class SettingsUpdateRequest(BaseModel):
+    """Request to update settings."""
+    openrouter_api_key: Optional[str] = None
+    built_in_prompts: Optional[List[BuiltInPrompt]] = None
+    test_models: Optional[List[str]] = None
+    synthesizer_model: Optional[str] = None
+    generator_model: Optional[str] = None
+
+
 class RestoreVersionRequest(BaseModel):
     """Request to restore a specific version as current."""
     version: int
@@ -123,6 +150,22 @@ class Session(BaseModel):
 async def root():
     """Health check endpoint."""
     return {"status": "ok", "service": "Prompt Optimizer API"}
+
+
+@app.get("/api/settings", response_model=SettingsResponse)
+async def get_app_settings():
+    """Return current application settings."""
+    return get_settings()
+
+
+@app.post("/api/settings", response_model=SettingsResponse)
+async def update_app_settings(request: SettingsUpdateRequest):
+    """Update application settings."""
+    updates = {k: v for k, v in request.dict().items() if v is not None}
+    if not updates:
+        return get_settings()
+
+    return save_settings(updates)
 
 
 @app.get("/api/sessions", response_model=List[SessionMetadata])
