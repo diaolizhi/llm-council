@@ -2,7 +2,9 @@
  * API client for the Prompt Optimizer backend.
  */
 
-const API_BASE = 'http://localhost:8001';
+// In desktop mode (served from backend), use relative path
+// In development mode (Vite dev server), use absolute URL
+const API_BASE = import.meta.env.DEV ? 'http://localhost:8001' : '';
 
 export const api = {
   /**

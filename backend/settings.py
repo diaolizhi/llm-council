@@ -12,9 +12,18 @@ from .config import (
     SYNTHESIZER_MODEL,
     GENERATOR_MODEL,
 )
+from .platform_utils import get_user_data_dir, ensure_data_dir, secure_file_permissions, is_desktop_mode
 
-DATA_DIR = "data"
-SETTINGS_FILE = os.path.join(DATA_DIR, "settings.json")
+# Use platform-appropriate data directory in desktop mode, otherwise use local data/
+def _get_data_dir() -> str:
+    if is_desktop_mode():
+        return str(ensure_data_dir())
+    return "data"
+
+def _get_settings_file() -> str:
+    if is_desktop_mode():
+        return str(get_user_data_dir() / "settings.json")
+    return os.path.join("data", "settings.json")
 
 DEFAULT_BUILTIN_PROMPTS = [
     {
@@ -59,12 +68,17 @@ DEFAULT_SETTINGS = {
 
 
 def _ensure_data_dir():
-    Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
+    data_dir = _get_data_dir()
+    Path(data_dir).mkdir(parents=True, exist_ok=True)
 
 
 def _write_settings(settings: Dict[str, Any]):
-    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+    settings_file = _get_settings_file()
+    with open(settings_file, "w", encoding="utf-8") as f:
         json.dump(settings, f, indent=2, ensure_ascii=False)
+    # Set secure permissions in desktop mode
+    if is_desktop_mode():
+        secure_file_permissions(Path(settings_file))
 
 
 def get_settings() -> Dict[str, Any]:
@@ -72,10 +86,11 @@ def get_settings() -> Dict[str, Any]:
     Load settings from disk, falling back to defaults when needed.
     """
     _ensure_data_dir()
+    settings_file = _get_settings_file()
     raw = {}
-    if os.path.exists(SETTINGS_FILE):
+    if os.path.exists(settings_file):
         try:
-            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+            with open(settings_file, "r", encoding="utf-8") as f:
                 raw = json.load(f) or {}
         except json.JSONDecodeError:
             raw = {}
@@ -89,7 +104,7 @@ def get_settings() -> Dict[str, Any]:
     if not settings.get("built_in_prompts"):
         settings["built_in_prompts"] = deepcopy(DEFAULT_BUILTIN_PROMPTS)
 
-    if not os.path.exists(SETTINGS_FILE):
+    if not os.path.exists(settings_file):
         _write_settings(settings)
 
     return deepcopy(settings)

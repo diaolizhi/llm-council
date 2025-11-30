@@ -1,7 +1,12 @@
 """FastAPI backend for Prompt Optimizer."""
 
+import os
+import sys
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 import uuid
@@ -146,9 +151,34 @@ class Session(BaseModel):
     iterations: List[Dict[str, Any]]
 
 
+def _get_static_dir() -> str:
+    """Get the path to static files directory."""
+    if getattr(sys, 'frozen', False):
+        # Running from PyInstaller bundle
+        # Static files are at {_MEIPASS}/backend/static/
+        base_path = sys._MEIPASS
+        return os.path.join(base_path, "backend", "static")
+    else:
+        # Running from source - static files are at backend/static/
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(base_path, "static")
+
+
+_static_dir = _get_static_dir()
+_has_static_files = os.path.isdir(_static_dir) and os.path.isfile(os.path.join(_static_dir, "index.html"))
+
+# Mount static assets if available
+if _has_static_files:
+    assets_dir = os.path.join(_static_dir, "assets")
+    if os.path.isdir(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+
 @app.get("/")
 async def root():
-    """Health check endpoint."""
+    """Serve frontend or health check."""
+    if _has_static_files:
+        return FileResponse(os.path.join(_static_dir, "index.html"))
     return {"status": "ok", "service": "Prompt Optimizer API"}
 
 

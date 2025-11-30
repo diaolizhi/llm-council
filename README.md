@@ -93,6 +93,30 @@ GENERATOR_MODEL = "google/gemini-2.0-flash-exp:free"
 
 ## Running the Application
 
+### Desktop Mode (Recommended)
+
+Run as a standalone desktop application with one command:
+
+```bash
+# Build frontend first (one-time)
+cd frontend && npm run build && cd ..
+
+# Launch desktop app
+uv run python desktop.py
+```
+
+The desktop app:
+- Opens in a native window (no browser needed)
+- Automatically finds an available port
+- Stores settings in platform-appropriate location:
+  - Windows: `%APPDATA%/LLMCouncil/`
+  - macOS: `~/Library/Application Support/LLMCouncil/`
+  - Linux: `~/.config/LLMCouncil/`
+
+### Development Mode
+
+For development with hot-reload:
+
 **Option 1: Use the start script**
 ```bash
 ./start.sh
@@ -112,6 +136,27 @@ npm run dev
 ```
 
 Then open http://localhost:5173 in your browser.
+
+### Building Standalone Executable
+
+To create distributable applications for all platforms, see **[BUILD.md](BUILD.md)** for detailed instructions.
+
+**Quick build:**
+```bash
+# macOS/Linux
+./scripts/build.sh
+
+# Windows
+scripts\build.bat
+```
+
+**Automated builds:** Push a version tag to automatically build for all platforms:
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+Download builds from GitHub Releases page.
 
 ## Tech Stack
 
