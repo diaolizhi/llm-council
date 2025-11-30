@@ -42,21 +42,46 @@
   border-color: #357abd;
 }
 
-.settings-btn {
-  margin-top: 8px;
-  width: 100%;
-  padding: 10px;
-  background: #fff;
-  border: 1px solid #d0d0d0;
-  border-radius: 6px;
-  color: #333;
-  cursor: pointer;
-  font-size: 14px;
-  transition: border-color 0.2s, background 0.2s;
+.sidebar-footer {
+  border-top: 1px solid #e0e0e0;
+  background: #f8f8f8;
+  padding: 12px 16px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.settings-btn:hover {
+.footer-control {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid #d0d0d0;
+  background: #fff;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+select.footer-control {
+  background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 12px center;
+  padding-right: 32px;
+}
+
+.footer-control:hover {
   border-color: #4a90e2;
+}
+
+.footer-control:focus {
+  border-color: #4a90e2;
+  outline: none;
+}
+
+button.footer-control:hover {
   background: #f0f4ff;
 }
 
@@ -99,36 +124,4 @@
 .conversation-meta {
   color: #999;
   font-size: 12px;
-}
-
-.language-switcher {
-  padding: 14px 16px 16px 16px;
-  border-top: 1px solid #e0e0e0;
-  background: #f8f8f8;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.language-switcher label {
-  font-size: 12px;
-  color: #666;
-}
-
-.language-switcher select {
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid #d0d0d0;
-  background: #fff;
-  font-size: 13px;
-  color: #333;
-  cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.language-switcher select:focus {
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.15);
-  outline: none;
 }

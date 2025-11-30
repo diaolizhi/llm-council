@@ -23,9 +23,6 @@ export default function Sidebar({
         <button className="new-conversation-btn" onClick={onNewSession}>
           {t('sidebar.newSession')}
         </button>
-        <button className="settings-btn" onClick={onOpenSettings}>
-          {t('sidebar.settings')}
-        </button>
       </div>
 
       <div className="conversation-list">
@@ -53,16 +50,19 @@ export default function Sidebar({
           )}
         </div>
 
-      <div className="language-switcher">
-        <label htmlFor="language-select">{t('sidebar.language')}</label>
+      <div className="sidebar-footer">
         <select
           id="language-select"
+          className="footer-control"
           value={locale}
           onChange={handleLocaleChange}
         >
           <option value="en">English</option>
           <option value="zh">中文</option>
         </select>
+        <button className="footer-control" onClick={onOpenSettings}>
+          {t('sidebar.settings')}
+        </button>
       </div>
     </div>
   );

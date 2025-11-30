@@ -173,9 +173,7 @@ function App() {
         onOpenSettings={handleOpenSettings}
       />
       <main className="main-content">
-        {showSettings ? (
-          <SettingsView onClose={handleCloseSettings} />
-        ) : currentSession ? (
+        {currentSession ? (
           <IterationView
             session={currentSession}
             activeVersion={currentVersion}
@@ -192,6 +190,14 @@ function App() {
           </div>
         )}
       </main>
+
+      {showSettings && (
+        <div className="modal-overlay" onClick={handleCloseSettings}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <SettingsView onClose={handleCloseSettings} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

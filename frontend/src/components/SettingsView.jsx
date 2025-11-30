@@ -164,20 +164,7 @@ function SettingsView({ onClose }) {
         </div>
       </div>
 
-      <div className="settings-tabs">
-        <button
-          className={`settings-tab ${activeTab === 'connection' ? 'active' : ''}`}
-          onClick={() => setActiveTab('connection')}
-        >
-          {t('settings.tabConnection')}
-        </button>
-        <button
-          className={`settings-tab ${activeTab === 'prompts' ? 'active' : ''}`}
-          onClick={() => setActiveTab('prompts')}
-        >
-          {t('settings.tabPrompts')}
-        </button>
-      </div>
+      {/* Tabs hidden temporarily - only showing connection tab */}
 
       {status && (
         <div className={`settings-status ${status.type}`}>{status.message}</div>
@@ -250,100 +237,7 @@ function SettingsView({ onClose }) {
         </div>
       )}
 
-      {activeTab === 'prompts' && (
-        <div className="settings-form">
-          <div className="settings-section">
-            <div className="settings-section-header">
-              <div>
-                <h3>{t('settings.builtinPromptsTitle')}</h3>
-                <p className="settings-section-description">
-                  {t('settings.builtinPromptsHelp')}
-                </p>
-                <p className="settings-warning">{t('settings.backendOnlyWarning')}</p>
-              </div>
-              <button type="button" className="settings-add-btn" onClick={handleAddPrompt}>
-                {t('settings.addPrompt')}
-              </button>
-            </div>
-
-            {(settings.built_in_prompts || []).length === 0 && (
-              <div className="settings-empty">{t('settings.noPrompts')}</div>
-            )}
-
-            {(settings.built_in_prompts || []).map((prompt, index) => {
-              const isExpanded = expandedPromptId === prompt.id;
-              return (
-                <div key={prompt.id} className="prompt-card">
-                  <div className="prompt-card-header">
-                    <div
-                      className="prompt-card-title"
-                      onClick={() => togglePromptExpanded(prompt.id)}
-                    >
-                      <span className="prompt-card-id">{prompt.id}</span>
-                      <span className="prompt-card-name">
-                        {prompt.title || t('settings.untitledPrompt')}
-                      </span>
-                    </div>
-                    <div className="prompt-card-actions">
-                      <button
-                        type="button"
-                        className="prompt-toggle-btn"
-                        onClick={() => togglePromptExpanded(prompt.id)}
-                      >
-                        {isExpanded ? t('settings.collapse') : t('settings.expand')}
-                      </button>
-                      <button
-                        type="button"
-                        className="prompt-remove-btn"
-                        onClick={() => handleRemovePrompt(prompt.id)}
-                      >
-                        {t('settings.removePrompt')}
-                      </button>
-                    </div>
-                  </div>
-
-                  {isExpanded && (
-                    <div className="prompt-card-body">
-                      <div className="settings-field">
-                        <label>{t('settings.promptTitleLabel')}</label>
-                        <input
-                          type="text"
-                          value={prompt.title}
-                          onChange={(event) =>
-                            handlePromptChange(index, 'title', event.target.value)
-                          }
-                        />
-                      </div>
-
-                      <div className="settings-field">
-                        <label>{t('settings.promptDescriptionLabel')}</label>
-                        <input
-                          type="text"
-                          value={prompt.description || ''}
-                          onChange={(event) =>
-                            handlePromptChange(index, 'description', event.target.value)
-                          }
-                        />
-                      </div>
-
-                      <div className="settings-field">
-                        <label>{t('settings.promptBodyLabel')}</label>
-                        <textarea
-                          rows={6}
-                          value={prompt.prompt}
-                          onChange={(event) =>
-                            handlePromptChange(index, 'prompt', event.target.value)
-                          }
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* Prompts tab hidden temporarily */}
     </div>
   );
 }
