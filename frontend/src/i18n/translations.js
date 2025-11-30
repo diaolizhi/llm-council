@@ -4,6 +4,8 @@ export const TRANSLATIONS = {
     'app.empty.title': 'Welcome to Prompt Optimizer',
     'app.empty.description': 'Create a new session to start optimizing your prompts.',
     'app.empty.button': 'Create New Session',
+    'app.apiNotConfigured': 'OpenRouter API key is not configured. Please configure it to use the optimizer.',
+    'app.configureNow': 'Configure Now',
 
     'sidebar.title': 'Prompt Optimizer',
     'sidebar.newSession': '+ New Prompt',
@@ -202,6 +204,8 @@ export const TRANSLATIONS = {
     'app.empty.title': '欢迎使用提示词优化器',
     'app.empty.description': '创建一个新的会话开始优化你的提示词。',
     'app.empty.button': '创建新会话',
+    'app.apiNotConfigured': 'OpenRouter API Key 尚未配置，请先配置后再使用优化器。',
+    'app.configureNow': '立即配置',
 
     'sidebar.title': '提示词优化器',
     'sidebar.newSession': '+ 新建提示词',

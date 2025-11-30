@@ -322,6 +322,18 @@ export const api = {
   },
 
   /**
+   * Check if OpenRouter API key is configured.
+   */
+  async getSettingsStatus() {
+    const response = await fetch(`${API_BASE}/api/settings/status`);
+    if (!response.ok) {
+      const errorMsg = await extractErrorMessage(response, 'Failed to check settings status');
+      throw new Error(errorMsg);
+    }
+    return response.json();
+  },
+
+  /**
    * Get current application settings.
    */
   async getSettings() {

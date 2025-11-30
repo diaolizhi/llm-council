@@ -13,6 +13,7 @@ function App() {
   const [currentVersion, setCurrentVersion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [apiConfigured, setApiConfigured] = useState(true);
   const { t } = useI18n();
 
   // Load sessions on mount
@@ -27,8 +28,23 @@ function App() {
     }
   }, [currentSessionId]);
 
+  const checkApiConfiguration = async () => {
+    try {
+      const status = await api.getSettingsStatus();
+      setApiConfigured(status.configured);
+      return status.configured;
+    } catch (error) {
+      console.error('Failed to check API configuration:', error);
+      // Assume configured if check fails to avoid blocking the app
+      return true;
+    }
+  };
+
   const loadSessions = async () => {
     try {
+      // Check API configuration first
+      await checkApiConfiguration();
+
       const sessionsList = await api.listSessionsWithVersions();
       setSessions(sessionsList);
 
@@ -98,7 +114,11 @@ function App() {
   };
 
   const handleOpenSettings = () => setShowSettings(true);
-  const handleCloseSettings = () => setShowSettings(false);
+  const handleCloseSettings = async () => {
+    setShowSettings(false);
+    // Re-check API configuration after closing settings
+    await checkApiConfiguration();
+  };
 
   const handleDeleteSession = async (sessionId) => {
     if (!window.confirm(t('sidebar.deleteConfirm'))) {
@@ -222,6 +242,12 @@ function App() {
         onOpenSettings={handleOpenSettings}
       />
       <main className="main-content">
+        {!apiConfigured && (
+          <div className="api-config-banner">
+            <span>{t('app.apiNotConfigured')}</span>
+            <button onClick={handleOpenSettings}>{t('app.configureNow')}</button>
+          </div>
+        )}
         {currentSession ? (
           <IterationView
             session={currentSession}

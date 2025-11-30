@@ -208,6 +208,16 @@ async def root():
     return {"status": "ok", "service": "Prompt Optimizer API"}
 
 
+@app.get("/api/settings/status")
+async def get_settings_status():
+    """Check if OpenRouter API key is configured."""
+    settings = get_settings()
+    api_key = settings.get("openrouter_api_key")
+    return {
+        "configured": bool(api_key and api_key.strip()),
+    }
+
+
 @app.get("/api/settings", response_model=SettingsResponse)
 async def get_app_settings():
     """Return current application settings."""
