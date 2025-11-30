@@ -1,0 +1,233 @@
+name: Build Desktop Apps
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags (e.g., v0.1.0)
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  build-macos-arm64:
+    name: Build macOS (Apple Silicon)
+    runs-on: macos-14  # macOS with Apple Silicon
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Python dependencies
+        run: |
+          uv sync
+          uv sync --extra dev
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: Build macOS app (Apple Silicon)
+        run: |
+          uv run pyinstaller llm-council.spec --noconfirm
+
+      - name: Create DMG
+        run: |
+          brew install create-dmg
+          create-dmg \
+            --volname "LLM Council" \
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --app-drop-link 600 185 \
+            "dist/LLM-Council-macOS-arm64.dmg" \
+            "dist/LLM Council.app"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LLM-Council-macOS-arm64
+          path: dist/LLM-Council-macOS-arm64.dmg
+
+  build-macos-intel:
+    name: Build macOS (Intel)
+    runs-on: macos-13  # macOS with Intel
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Python dependencies
+        run: |
+          uv sync
+          uv sync --extra dev
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: Build macOS app (Intel)
+        run: |
+          uv run pyinstaller llm-council.spec --noconfirm --target-arch=x86_64
+
+      - name: Create DMG
+        run: |
+          brew install create-dmg
+          create-dmg \
+            --volname "LLM Council" \
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --app-drop-link 600 185 \
+            "dist/LLM-Council-macOS-intel.dmg" \
+            "dist/LLM Council.app"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LLM-Council-macOS-intel
+          path: dist/LLM-Council-macOS-intel.dmg
+
+  build-windows:
+    name: Build Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install uv
+        run: irm https://astral.sh/uv/install.ps1 | iex
+        shell: powershell
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Python dependencies
+        run: |
+          uv sync
+          uv sync --extra dev
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: Build Windows app
+        run: |
+          uv run pyinstaller llm-council-windows.spec --noconfirm
+
+      - name: Create ZIP archive
+        run: |
+          Compress-Archive -Path "dist/LLM Council/*" -DestinationPath "dist/LLM-Council-Windows.zip"
+        shell: powershell
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LLM-Council-Windows
+          path: dist/LLM-Council-Windows.zip
+
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-0 \
+            libwebkit2gtk-4.0-37 \
+            libglib2.0-0
+
+      - name: Install Python dependencies
+        run: |
+          uv sync
+          uv sync --extra dev
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: Build Linux app
+        run: |
+          uv run pyinstaller llm-council.spec --noconfirm
+
+      - name: Create tarball
+        run: |
+          cd dist
+          tar -czf LLM-Council-Linux.tar.gz "LLM Council"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LLM-Council-Linux
+          path: dist/LLM-Council-Linux.tar.gz
+
+  create-release:
+    name: Create Release
+    needs: [build-macos-arm64, build-macos-intel, build-windows, build-linux]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            LLM-Council-macOS-arm64/LLM-Council-macOS-arm64.dmg
+            LLM-Council-macOS-intel/LLM-Council-macOS-intel.dmg
+            LLM-Council-Windows/LLM-Council-Windows.zip
+            LLM-Council-Linux/LLM-Council-Linux.tar.gz
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
