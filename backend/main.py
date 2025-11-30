@@ -7,7 +7,7 @@ import traceback
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 import uuid
@@ -454,6 +454,141 @@ async def test_prompt(session_id: str, request: TestPromptRequest):
     }
 
 
+@app.post("/api/sessions/{session_id}/test/stream")
+async def test_prompt_stream(session_id: str, request: TestPromptRequest):
+    """
+    Test the current prompt with selected models using streaming.
+    Returns Server-Sent Events (SSE) with real-time model outputs.
+    """
+    import json
+    import asyncio
+    from .openrouter import query_model_stream
+    from .settings import get_settings
+
+    # Get the latest iteration
+    iteration = storage.get_active_iteration(session_id)
+    if iteration is None:
+        raise HTTPException(status_code=404, detail="No iterations found. Initialize prompt first.")
+
+    if not request.test_sample_id or not request.test_sample_id.strip():
+        raise HTTPException(status_code=400, detail="A test sample must be selected.")
+
+    sample = storage.get_test_sample(session_id, request.test_sample_id)
+    if not sample:
+        raise HTTPException(status_code=404, detail="Test sample not found")
+
+    # Use provided models or default to TEST_MODELS
+    settings = get_settings()
+    models = request.models if request.models else (settings.get("test_models") or TEST_MODELS)
+
+    # Prepare messages
+    test_input = sample.get("input")
+    if test_input:
+        messages = [
+            {"role": "system", "content": iteration["prompt"]},
+            {"role": "user", "content": test_input}
+        ]
+    else:
+        messages = [{"role": "user", "content": iteration["prompt"]}]
+
+    async def generate_stream():
+        # Send initial event with models list
+        yield f"data: {json.dumps({'type': 'start', 'models': models})}\n\n"
+
+        # Track results for each model
+        results = {model: {"model": model, "output": "", "error": None} for model in models}
+
+        # Create tasks for all models
+        async def stream_model(model: str):
+            content_buffer = ""
+            try:
+                async for chunk in query_model_stream(model, messages):
+                    if chunk["type"] == "delta":
+                        content_buffer += chunk["content"]
+                        yield model, {"type": "delta", "model": model, "content": chunk["content"]}
+                    elif chunk["type"] == "error":
+                        yield model, {"type": "error", "model": model, "error": chunk["error"]}
+                        return
+                    elif chunk["type"] == "done":
+                        yield model, {"type": "model_done", "model": model, "output": content_buffer}
+                        return
+                # If we exit without done, still mark as complete
+                yield model, {"type": "model_done", "model": model, "output": content_buffer}
+            except Exception as e:
+                yield model, {"type": "error", "model": model, "error": str(e)}
+
+        # Run all model streams concurrently
+        async def run_all_streams():
+            model_generators = {model: stream_model(model) for model in models}
+            active_generators = set(models)
+
+            while active_generators:
+                for model in list(active_generators):
+                    gen = model_generators[model]
+                    try:
+                        _, event = await gen.__anext__()
+                        yield f"data: {json.dumps(event)}\n\n"
+
+                        if event["type"] == "model_done":
+                            results[model]["output"] = event["output"]
+                            active_generators.discard(model)
+                        elif event["type"] == "error":
+                            results[model]["error"] = event["error"]
+                            results[model]["output"] = f"[Error: {event['error']}]"
+                            active_generators.discard(model)
+                    except StopAsyncIteration:
+                        active_generators.discard(model)
+
+                if active_generators:
+                    await asyncio.sleep(0.01)
+
+        async for event_data in run_all_streams():
+            yield event_data
+
+        # Build final test results
+        test_results = []
+        for model in models:
+            result = results[model]
+            test_results.append({
+                "model": model,
+                "output": result["output"],
+                "response_time": 0,
+                "rating": None,
+                "feedback": None,
+                "error": result["error"] is not None,
+                "error_detail": result["error"]
+            })
+
+        # Update the iteration with test results
+        storage.update_iteration_test_results(
+            session_id,
+            iteration["version"],
+            test_results,
+            test_sample_id=sample["id"],
+            test_sample_title=sample.get("title"),
+            test_sample_input=sample.get("input"),
+            stage="tested",
+            clear_feedback=True,
+            clear_suggestions=True
+        )
+
+        # Advance stage after successful testing
+        session = storage.update_session_meta(session_id, stage="tested", current_version=iteration["version"])
+
+        # Send final complete event
+        yield f"data: {json.dumps({'type': 'complete', 'test_results': test_results, 'version': iteration['version'], 'stage': session.get('stage')})}\n\n"
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
+
+
 @app.post("/api/sessions/{session_id}/feedback")
 async def submit_feedback(session_id: str, request: SubmitFeedbackRequest):
     """
@@ -514,6 +649,154 @@ async def generate_suggestions(session_id: str, request: GenerateSuggestionsRequ
         "version": iteration["version"],
         "suggestions": suggestions
     }
+
+
+@app.post("/api/sessions/{session_id}/suggest/stream")
+async def generate_suggestions_stream(session_id: str, request: GenerateSuggestionsRequest):
+    """
+    Generate improvement suggestions based on test results and feedback using streaming.
+    Returns Server-Sent Events (SSE) with real-time suggestion outputs.
+    """
+    import json
+    import asyncio
+    from .openrouter import query_model_stream
+    from .settings import get_settings, get_builtin_prompt
+
+    # Get the latest iteration
+    iteration = storage.get_active_iteration(session_id)
+    if iteration is None:
+        raise HTTPException(status_code=404, detail="No iterations found")
+
+    # Check if there are test results
+    test_results = iteration.get("test_results")
+    if not test_results:
+        raise HTTPException(status_code=400, detail="No test results available. Run tests first.")
+
+    # Determine models to use
+    if request.models:
+        models = request.models
+    else:
+        # Use the models that were successfully tested
+        models = [r["model"] for r in test_results if not r.get("error")]
+
+    # Build context about test results and feedback
+    results_summary = []
+    for result in test_results:
+        if result.get("error"):
+            continue
+
+        model = result["model"]
+        rating = result.get("rating")
+        feedback = result.get("feedback")
+
+        summary = f"Model: {model}"
+        if rating is not None:
+            summary += f"\nRating: {rating}/5 stars"
+        if feedback:
+            summary += f"\nFeedback: {feedback}"
+        summary += f"\nOutput preview: {result['output'][:200]}..."
+
+        results_summary.append(summary)
+
+    results_text = "\n\n".join(results_summary)
+
+    template = get_builtin_prompt("improvement-suggestion") or """You are a prompt engineering expert. You are helping optimize a prompt based on test results and feedback. Return ONLY the improved prompt text wrapped in <prompt>...</prompt> XML tags with no explanation outside the tag."""
+
+    suggestion_prompt = f"""{template}
+
+CURRENT PROMPT:
+{iteration["prompt"]}
+
+This prompt was tested with multiple LLMs. Here are the results and user feedback:
+
+{results_text}
+
+Based on the test results and user feedback, suggest specific improvements to the prompt."""
+
+    messages = [{"role": "user", "content": suggestion_prompt}]
+
+    async def generate_stream():
+        # Send initial event with models list
+        yield f"data: {json.dumps({'type': 'start', 'models': models})}\n\n"
+
+        # Track results for each model
+        results = {model: {"model": model, "suggestion": "", "error": None} for model in models}
+
+        # Create tasks for all models
+        async def stream_model(model: str):
+            content_buffer = ""
+            try:
+                async for chunk in query_model_stream(model, messages):
+                    if chunk["type"] == "delta":
+                        content_buffer += chunk["content"]
+                        yield model, {"type": "delta", "model": model, "content": chunk["content"]}
+                    elif chunk["type"] == "error":
+                        yield model, {"type": "error", "model": model, "error": chunk["error"]}
+                        return
+                    elif chunk["type"] == "done":
+                        yield model, {"type": "model_done", "model": model, "suggestion": content_buffer}
+                        return
+                # If we exit without done, still mark as complete
+                yield model, {"type": "model_done", "model": model, "suggestion": content_buffer}
+            except Exception as e:
+                yield model, {"type": "error", "model": model, "error": str(e)}
+
+        # Run all model streams concurrently
+        async def run_all_streams():
+            model_generators = {model: stream_model(model) for model in models}
+            active_generators = set(models)
+
+            while active_generators:
+                for model in list(active_generators):
+                    gen = model_generators[model]
+                    try:
+                        _, event = await gen.__anext__()
+                        yield f"data: {json.dumps(event)}\n\n"
+
+                        if event["type"] == "model_done":
+                            results[model]["suggestion"] = event["suggestion"]
+                            active_generators.discard(model)
+                        elif event["type"] == "error":
+                            results[model]["error"] = event["error"]
+                            active_generators.discard(model)
+                    except StopAsyncIteration:
+                        active_generators.discard(model)
+
+                if active_generators:
+                    await asyncio.sleep(0.01)
+
+        async for event_data in run_all_streams():
+            yield event_data
+
+        # Build final suggestions
+        suggestions = []
+        for model in models:
+            result = results[model]
+            if result["error"] is None and result["suggestion"]:
+                suggestions.append({
+                    "model": model,
+                    "suggestion": result["suggestion"]
+                })
+
+        # Update the iteration with suggestions
+        storage.update_iteration_suggestions(
+            session_id,
+            iteration["version"],
+            suggestions
+        )
+
+        # Send final complete event
+        yield f"data: {json.dumps({'type': 'complete', 'suggestions': suggestions, 'version': iteration['version']})}\n\n"
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
 
 
 @app.post("/api/sessions/{session_id}/merge")

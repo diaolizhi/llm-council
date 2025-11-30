@@ -29,6 +29,8 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
   const [editingSampleId, setEditingSampleId] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const [mainTab, setMainTab] = useState('prompt'); // 'prompt', 'test', 'suggestions'
+  const [streamingTestResults, setStreamingTestResults] = useState(null);
+  const [streamingSuggestions, setStreamingSuggestions] = useState(null);
   const { t } = useI18n();
 
   const sortedIterations = (session?.iterations || []).slice().sort((a, b) => b.version - a.version);
@@ -246,11 +248,62 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
 
     setIsTesting(true);
     setIsResettingDependentData(true);
+    setStreamingTestResults(null);
+
     try {
-      await onAction('test', { test_sample_id: selectedSampleId });
+      await api.testPromptStream(session.id, selectedSampleId, (event) => {
+        if (event.type === 'start') {
+          // Initialize streaming results with empty outputs
+          const initialResults = event.models.map((model) => ({
+            model,
+            output: '',
+            response_time: 0,
+            rating: null,
+            feedback: null,
+            error: false,
+            streaming: true,
+          }));
+          setStreamingTestResults(initialResults);
+        } else if (event.type === 'delta') {
+          // Append content to the specific model's output
+          setStreamingTestResults((prev) => {
+            if (!prev) return prev;
+            return prev.map((result) =>
+              result.model === event.model
+                ? { ...result, output: result.output + event.content }
+                : result
+            );
+          });
+        } else if (event.type === 'error') {
+          // Mark model as errored
+          setStreamingTestResults((prev) => {
+            if (!prev) return prev;
+            return prev.map((result) =>
+              result.model === event.model
+                ? { ...result, output: `[Error: ${event.error}]`, error: true, streaming: false }
+                : result
+            );
+          });
+        } else if (event.type === 'model_done') {
+          // Mark model as complete
+          setStreamingTestResults((prev) => {
+            if (!prev) return prev;
+            return prev.map((result) =>
+              result.model === event.model
+                ? { ...result, streaming: false }
+                : result
+            );
+          });
+        } else if (event.type === 'complete') {
+          // Streaming complete, reload session to get final state
+          setStreamingTestResults(null);
+          onAction('reload');
+        }
+      });
     } catch (error) {
       console.error('Error testing:', error);
       showError(error.message || t('iteration.alert.testFail'));
+      setStreamingTestResults(null);
     } finally {
       setIsTesting(false);
       setIsResettingDependentData(false);
@@ -283,11 +336,58 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
 
   const handleGenerateSuggestions = async () => {
     setIsGeneratingSuggestions(true);
+    setStreamingSuggestions(null);
+
     try {
-      await onAction('suggest', {});
+      await api.generateSuggestionsStream(session.id, (event) => {
+        if (event.type === 'start') {
+          // Initialize streaming suggestions with empty content
+          const initialSuggestions = event.models.map((model) => ({
+            model,
+            suggestion: '',
+            streaming: true,
+          }));
+          setStreamingSuggestions(initialSuggestions);
+        } else if (event.type === 'delta') {
+          // Append content to the specific model's suggestion
+          setStreamingSuggestions((prev) => {
+            if (!prev) return prev;
+            return prev.map((item) =>
+              item.model === event.model
+                ? { ...item, suggestion: item.suggestion + event.content }
+                : item
+            );
+          });
+        } else if (event.type === 'error') {
+          // Mark model as errored
+          setStreamingSuggestions((prev) => {
+            if (!prev) return prev;
+            return prev.map((item) =>
+              item.model === event.model
+                ? { ...item, suggestion: `[Error: ${event.error}]`, error: true, streaming: false }
+                : item
+            );
+          });
+        } else if (event.type === 'model_done') {
+          // Mark model as complete
+          setStreamingSuggestions((prev) => {
+            if (!prev) return prev;
+            return prev.map((item) =>
+              item.model === event.model
+                ? { ...item, streaming: false }
+                : item
+            );
+          });
+        } else if (event.type === 'complete') {
+          // Streaming complete, reload session to get final state
+          setStreamingSuggestions(null);
+          onAction('reload');
+        }
+      });
     } catch (error) {
       console.error('Error generating suggestions:', error);
       showError(error.message || t('iteration.alert.suggestFail'));
+      setStreamingSuggestions(null);
     } finally {
       setIsGeneratingSuggestions(false);
     }
@@ -478,7 +578,28 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
               </div>
             </div>
 
-            {visibleTestResults && visibleTestResults.length > 0 && (
+            {/* Show streaming test results while streaming */}
+            {streamingTestResults && streamingTestResults.length > 0 && (
+              <>
+                <div className="test-sample-summary">
+                  <div className="test-sample-summary-header">
+                    <h4>{t('iteration.test.sampleSummaryTitle')}</h4>
+                    {selectedSampleTitle && <span className="sample-title-chip">{selectedSampleTitle}</span>}
+                  </div>
+                  <div className="test-sample-summary-body">
+                    <pre>{selectedSampleInput || t('iteration.test.noSampleInput')}</pre>
+                  </div>
+                </div>
+                <TestResults
+                  testResults={streamingTestResults}
+                  onFeedbackChange={null}
+                  streaming={true}
+                />
+              </>
+            )}
+
+            {/* Show saved test results when not streaming */}
+            {!streamingTestResults && visibleTestResults && visibleTestResults.length > 0 && (
               <>
                 <div className="test-sample-summary">
                   <div className="test-sample-summary-header">
@@ -514,7 +635,18 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
               )}
             </div>
 
-            {visibleSuggestions && visibleSuggestions.length > 0 && (
+            {/* Show streaming suggestions while streaming */}
+            {streamingSuggestions && streamingSuggestions.length > 0 && (
+              <SuggestionAggregator
+                suggestions={streamingSuggestions}
+                onAccept={null}
+                onMerge={null}
+                streaming={true}
+              />
+            )}
+
+            {/* Show saved suggestions when not streaming */}
+            {!streamingSuggestions && visibleSuggestions && visibleSuggestions.length > 0 && (
               <SuggestionAggregator
                 suggestions={visibleSuggestions}
                 onAccept={handleAcceptSuggestion}

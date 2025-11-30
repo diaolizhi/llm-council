@@ -404,4 +404,117 @@ export const api = {
     }
     return response.json();
   },
+
+  /**
+   * Test a prompt with models using streaming.
+   * @param {string} sessionId - Session ID
+   * @param {string} testSampleId - Test sample ID
+   * @param {Function} onEvent - Callback for each SSE event
+   * @param {Array<string>|null} models - Optional list of models
+   * @returns {Promise<void>}
+   */
+  async testPromptStream(sessionId, testSampleId, onEvent, models = null) {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/test/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ models, test_sample_id: testSampleId }),
+    });
+
+    if (!response.ok) {
+      const errorMsg = await extractErrorMessage(response, 'Failed to test prompt');
+      throw new Error(errorMsg);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            onEvent(data);
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+    }
+
+    // Process any remaining data
+    if (buffer.startsWith('data: ')) {
+      try {
+        const data = JSON.parse(buffer.slice(6));
+        onEvent(data);
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+  },
+
+  /**
+   * Generate improvement suggestions using streaming.
+   * @param {string} sessionId - Session ID
+   * @param {Function} onEvent - Callback for each SSE event
+   * @param {Array<string>|null} models - Optional list of models
+   * @returns {Promise<void>}
+   */
+  async generateSuggestionsStream(sessionId, onEvent, models = null) {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/suggest/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ models }),
+    });
+
+    if (!response.ok) {
+      const errorMsg = await extractErrorMessage(response, 'Failed to generate suggestions');
+      throw new Error(errorMsg);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6));
+            onEvent(data);
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+      }
+    }
+
+    // Process any remaining data
+    if (buffer.startsWith('data: ')) {
+      try {
+        const data = JSON.parse(buffer.slice(6));
+        onEvent(data);
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+  },
 };

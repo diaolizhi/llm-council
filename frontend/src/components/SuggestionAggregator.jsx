@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import { useI18n } from '../i18n/i18n.jsx';
 import './SuggestionAggregator.css';
 
-function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
+function SuggestionAggregator({ suggestions, onAccept, onMerge, streaming = false }) {
   const [activeTab, setActiveTab] = useState(0);
   const [showMerged, setShowMerged] = useState(false);
   const [mergedPrompt, setMergedPrompt] = useState('');
@@ -76,22 +76,24 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
     <div className="suggestion-aggregator">
       <div className="suggestions-header">
         <h3>{t('suggestions.header', { count: suggestions.length })}</h3>
-        <div className="merge-controls">
-          <button
-            className="merge-btn"
-            onClick={handleMerge}
-            disabled={isMerging || showMerged}
-          >
-            {isMerging
-              ? t('suggestions.merging')
-              : showMerged
-                ? t('suggestions.merged')
-                : t('suggestions.merge')}
-          </button>
-        </div>
+        {!streaming && (
+          <div className="merge-controls">
+            <button
+              className="merge-btn"
+              onClick={handleMerge}
+              disabled={isMerging || showMerged}
+            >
+              {isMerging
+                ? t('suggestions.merging')
+                : showMerged
+                  ? t('suggestions.merged')
+                  : t('suggestions.merge')}
+            </button>
+          </div>
+        )}
       </div>
 
-      {!showMerged && suggestions.length > 1 && (
+      {!streaming && !showMerged && suggestions.length > 1 && (
         <div className="user-preference">
           <input
             type="text"
@@ -128,10 +130,11 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
             {suggestions.map((suggestion, index) => (
               <button
                 key={suggestion.model}
-                className={`tab ${activeTab === index ? 'active' : ''}`}
+                className={`tab ${activeTab === index ? 'active' : ''} ${suggestion.streaming ? 'streaming' : ''}`}
                 onClick={() => setActiveTab(index)}
               >
                 {suggestion.model.split('/').pop().split(':')[0]}
+                {suggestion.streaming && <span className="tab-streaming">●</span>}
               </button>
             ))}
           </div>
@@ -147,19 +150,22 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
                 </div>
 
                 <div className="suggestion-full-content">
-                  <div className="markdown-content">
+                  <div className={`markdown-content ${suggestion.streaming ? 'streaming-output' : ''}`}>
                     <ReactMarkdown>{suggestion.suggestion}</ReactMarkdown>
+                    {suggestion.streaming && <span className="streaming-cursor">▌</span>}
                   </div>
                 </div>
 
-                <div className="suggestion-actions">
-                  <button
-                    className="accept-btn"
-                    onClick={() => handleAcceptSuggestion(suggestion.suggestion)}
-                  >
-                    {t('suggestions.useSingle')}
-                  </button>
-                </div>
+                {!streaming && (
+                  <div className="suggestion-actions">
+                    <button
+                      className="accept-btn"
+                      onClick={() => handleAcceptSuggestion(suggestion.suggestion)}
+                    >
+                      {t('suggestions.useSingle')}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -4,7 +4,7 @@ import OutputRating from './OutputRating';
 import { useI18n } from '../i18n/i18n.jsx';
 import './TestResults.css';
 
-function TestResults({ testResults, onFeedbackChange }) {
+function TestResults({ testResults, onFeedbackChange, streaming = false }) {
   const [activeTab, setActiveTab] = useState(0);
   const { t } = useI18n();
 
@@ -38,11 +38,12 @@ function TestResults({ testResults, onFeedbackChange }) {
         {testResults.map((result, index) => (
           <button
             key={result.model}
-            className={`tab ${activeTab === index ? 'active' : ''} ${result.error ? 'error' : ''}`}
+            className={`tab ${activeTab === index ? 'active' : ''} ${result.error ? 'error' : ''} ${result.streaming ? 'streaming' : ''}`}
             onClick={() => setActiveTab(index)}
           >
             {result.model.split('/').pop().split(':')[0]}
-            {result.rating && <span className="tab-rating">★{result.rating}</span>}
+            {result.streaming && <span className="tab-streaming">●</span>}
+            {!result.streaming && result.rating && <span className="tab-rating">★{result.rating}</span>}
           </button>
         ))}
       </div>
@@ -66,16 +67,19 @@ function TestResults({ testResults, onFeedbackChange }) {
               </div>
             ) : (
               <>
-                <div className="markdown-content output-text">
+                <div className={`markdown-content output-text ${result.streaming ? 'streaming-output' : ''}`}>
                   <ReactMarkdown>{result.output}</ReactMarkdown>
+                  {result.streaming && <span className="streaming-cursor">▌</span>}
                 </div>
 
-                <OutputRating
-                  rating={result.rating}
-                  feedback={result.feedback}
-                  onRatingChange={(rating) => handleRatingChange(result.model, rating)}
-                  onFeedbackChange={(feedback) => handleFeedbackTextChange(result.model, feedback)}
-                />
+                {!streaming && (
+                  <OutputRating
+                    rating={result.rating}
+                    feedback={result.feedback}
+                    onRatingChange={(rating) => handleRatingChange(result.model, rating)}
+                    onFeedbackChange={(feedback) => handleFeedbackTextChange(result.model, feedback)}
+                  />
+                )}
               </>
             )}
           </div>

@@ -213,6 +213,10 @@ function App() {
           setCurrentVersion(result?.version || null);
           return result;
 
+        case 'reload':
+          await loadSession(currentSessionId);
+          return;
+
         default:
           console.warn('Unknown action:', action);
       }

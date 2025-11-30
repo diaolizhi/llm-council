@@ -316,3 +316,43 @@
   max-height: 500px;
   overflow-y: auto;
 }
+
+/* Streaming styles */
+.suggestions-tabs .tab.streaming {
+  color: #28a745;
+}
+
+.tab-streaming {
+  font-size: 10px;
+  color: #28a745;
+  margin-left: 5px;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.streaming-output {
+  position: relative;
+}
+
+.streaming-cursor {
+  display: inline;
+  color: #4a90e2;
+  animation: blink 0.7s infinite;
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
