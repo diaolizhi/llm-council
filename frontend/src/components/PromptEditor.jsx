@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { useI18n } from '../i18n/i18n.jsx';
 import './PromptEditor.css';
 
@@ -31,14 +32,19 @@ function PromptEditor({ prompt, onChange, readOnly = false, version = null }) {
           {t('promptEditor.charCount', { count: charCount })}
         </span>
       </div>
-      <textarea
-        className="prompt-textarea"
-        value={prompt || ''}
-        onChange={handleChange}
-        readOnly={readOnly}
-        placeholder={t('promptEditor.placeholder')}
-        rows={10}
-      />
+      {readOnly ? (
+        <div className="markdown-content prompt-display">
+          <ReactMarkdown>{prompt || ''}</ReactMarkdown>
+        </div>
+      ) : (
+        <textarea
+          className="prompt-textarea"
+          value={prompt || ''}
+          onChange={handleChange}
+          placeholder={t('promptEditor.placeholder')}
+          rows={10}
+        />
+      )}
     </div>
   );
 }
