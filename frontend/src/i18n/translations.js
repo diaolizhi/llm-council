@@ -14,6 +14,9 @@ export const TRANSLATIONS = {
     'sidebar.language': 'Language',
     'sidebar.defaultSessionTitle': 'New Session',
     'sidebar.noVersions': 'No versions yet',
+    'sidebar.delete': 'Delete',
+    'sidebar.deleteConfirm': 'Are you sure you want to delete this session? This cannot be undone.',
+    'sidebar.deleteFail': 'Failed to delete session. Please try again.',
 
     'settings.title': 'Settings',
     'settings.subtitle': 'Manage API keys, built-in prompts, and test models.',
@@ -206,6 +209,9 @@ export const TRANSLATIONS = {
     'sidebar.language': '语言',
     'sidebar.defaultSessionTitle': '新会话',
     'sidebar.noVersions': '暂无版本',
+    'sidebar.delete': '删除',
+    'sidebar.deleteConfirm': '确定要删除此会话吗？此操作无法撤销。',
+    'sidebar.deleteFail': '删除会话失败，请重试。',
 
     'settings.title': '设置',
     'settings.subtitle': '管理 API 密钥、内置提示词和测试模型。',

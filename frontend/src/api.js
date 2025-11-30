@@ -364,4 +364,18 @@ export const api = {
     }
     return response.json();
   },
+
+  /**
+   * Delete a session.
+   */
+  async deleteSession(sessionId) {
+    const response = await fetch(`${API_BASE}/api/sessions/${sessionId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      const errorMsg = await extractErrorMessage(response, 'Failed to delete session');
+      throw new Error(errorMsg);
+    }
+    return response.json();
+  },
 };

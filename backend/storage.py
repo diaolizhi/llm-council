@@ -538,3 +538,20 @@ def restore_iteration(session_id: str, version: int) -> Dict[str, Any]:
         json.dump(session, f, indent=2, ensure_ascii=False)
 
     return session
+
+
+def delete_session(session_id: str):
+    """
+    Delete a session by ID.
+
+    Args:
+        session_id: The session ID to delete
+
+    Raises:
+        ValueError: If session not found
+    """
+    path = _get_session_path(session_id)
+    if not os.path.exists(path):
+        raise ValueError(f"Session {session_id} not found")
+
+    os.remove(path)

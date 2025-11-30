@@ -100,6 +100,36 @@ function App() {
   const handleOpenSettings = () => setShowSettings(true);
   const handleCloseSettings = () => setShowSettings(false);
 
+  const handleDeleteSession = async (sessionId) => {
+    if (!window.confirm(t('sidebar.deleteConfirm'))) {
+      return;
+    }
+
+    try {
+      await api.deleteSession(sessionId);
+      const newSessions = sessions.filter((s) => s.id !== sessionId);
+      setSessions(newSessions);
+
+      // If deleted session was current, select another one
+      if (sessionId === currentSessionId) {
+        if (newSessions.length > 0) {
+          setCurrentSessionId(newSessions[0].id);
+          setCurrentVersion(
+            newSessions[0].current_version ||
+              (newSessions[0].versions?.[newSessions[0].versions.length - 1]?.version ?? null)
+          );
+        } else {
+          setCurrentSessionId(null);
+          setCurrentSession(null);
+          setCurrentVersion(null);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to delete session:', error);
+      alert(error.message || t('sidebar.deleteFail'));
+    }
+  };
+
   const handleAction = async (action, data) => {
     if (!currentSessionId) return;
 
@@ -170,6 +200,7 @@ function App() {
         currentSessionId={currentSessionId}
         onSelectSession={handleSelectSession}
         onNewSession={handleNewSession}
+        onDeleteSession={handleDeleteSession}
         onOpenSettings={handleOpenSettings}
       />
       <main className="main-content">

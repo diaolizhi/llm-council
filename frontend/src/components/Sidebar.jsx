@@ -6,6 +6,7 @@ export default function Sidebar({
   currentSessionId,
   onSelectSession,
   onNewSession,
+  onDeleteSession,
   onOpenSettings,
 }) {
   const { t, locale, setLocale } = useI18n();
@@ -37,14 +38,26 @@ export default function Sidebar({
                 }`}
                 onClick={() => onSelectSession(session.id)}
               >
-                <div className="conversation-title">
-                  {session.prompt_title || session.title || t('sidebar.defaultSessionTitle')}
+                <div className="conversation-item-content">
+                  <div className="conversation-title">
+                    {session.prompt_title || session.title || t('sidebar.defaultSessionTitle')}
+                  </div>
+                  <div className="conversation-meta">
+                    {((session.version_count ?? session.iteration_count) || 0) === 1
+                      ? t('sidebar.iterationSingular', { count: session.version_count ?? session.iteration_count ?? 0 })
+                      : t('sidebar.iterationPlural', { count: session.version_count ?? session.iteration_count ?? 0 })}
+                  </div>
                 </div>
-                <div className="conversation-meta">
-                  {((session.version_count ?? session.iteration_count) || 0) === 1
-                    ? t('sidebar.iterationSingular', { count: session.version_count ?? session.iteration_count ?? 0 })
-                    : t('sidebar.iterationPlural', { count: session.version_count ?? session.iteration_count ?? 0 })}
-                </div>
+                <button
+                  className="delete-session-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteSession(session.id);
+                  }}
+                  title={t('sidebar.delete')}
+                >
+                  ×
+                </button>
               </div>
             ))
           )}

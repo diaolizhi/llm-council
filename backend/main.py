@@ -318,6 +318,17 @@ async def get_session(session_id: str):
     return session
 
 
+@app.delete("/api/sessions/{session_id}")
+async def delete_session(session_id: str):
+    """Delete a session."""
+    try:
+        storage.delete_session(session_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+    return {"status": "deleted"}
+
+
 @app.post("/api/sessions/{session_id}/initialize")
 async def initialize_prompt(session_id: str, request: InitializePromptRequest):
     """
