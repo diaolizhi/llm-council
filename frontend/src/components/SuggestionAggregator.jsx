@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { useI18n } from '../i18n/i18n.jsx';
+import DiffView from './DiffView';
 import './SuggestionAggregator.css';
 
-function SuggestionAggregator({ suggestions, onAccept, onMerge, streaming = false }) {
+function SuggestionAggregator({ suggestions, onAccept, onMerge, streaming = false, originalPrompt = '' }) {
   const [activeTab, setActiveTab] = useState(0);
   const [showMerged, setShowMerged] = useState(false);
   const [mergedPrompt, setMergedPrompt] = useState('');
   const [userPreference, setUserPreference] = useState('');
   const [isMerging, setIsMerging] = useState(false);
   const [isSavingAccepted, setIsSavingAccepted] = useState(false);
+  const [viewMode, setViewMode] = useState('content'); // 'content' or 'diff'
   const { t } = useI18n();
 
   if (!suggestions || suggestions.length === 0) {
@@ -147,14 +149,38 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge, streaming = fals
               >
                 <div className="suggestion-header">
                   <h4>{suggestion.model}</h4>
+                  {!streaming && originalPrompt && (
+                    <div className="view-mode-toggle">
+                      <button
+                        className={`view-mode-btn ${viewMode === 'content' ? 'active' : ''}`}
+                        onClick={() => setViewMode('content')}
+                      >
+                        {t('suggestions.viewContent') || '建议内容'}
+                      </button>
+                      <button
+                        className={`view-mode-btn ${viewMode === 'diff' ? 'active' : ''}`}
+                        onClick={() => setViewMode('diff')}
+                      >
+                        {t('suggestions.viewDiff') || 'Diff 对比'}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                <div className="suggestion-full-content">
-                  <div className={`markdown-content ${suggestion.streaming ? 'streaming-output' : ''}`}>
-                    <ReactMarkdown>{suggestion.suggestion}</ReactMarkdown>
-                    {suggestion.streaming && <span className="streaming-cursor">▌</span>}
+                {viewMode === 'content' ? (
+                  <div className="suggestion-full-content">
+                    <div className={`markdown-content ${suggestion.streaming ? 'streaming-output' : ''}`}>
+                      <ReactMarkdown>{suggestion.suggestion}</ReactMarkdown>
+                      {suggestion.streaming && <span className="streaming-cursor">▌</span>}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <DiffView
+                    oldText={originalPrompt}
+                    newText={extractPrompt(suggestion.suggestion)}
+                    mode="lines"
+                  />
+                )}
 
                 {!streaming && (
                   <div className="suggestion-actions">

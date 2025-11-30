@@ -92,6 +92,9 @@
 }
 
 .suggestion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 15px;
   padding-bottom: 10px;
   border-bottom: 1px solid #ddd;
@@ -101,6 +104,39 @@
   margin: 0;
   font-size: 16px;
   color: #333;
+}
+
+.view-mode-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid #4a90e2;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.view-mode-btn {
+  padding: 6px 12px;
+  background-color: #fff;
+  color: #4a90e2;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  border-right: 1px solid #4a90e2;
+}
+
+.view-mode-btn:last-child {
+  border-right: none;
+}
+
+.view-mode-btn:hover:not(.active) {
+  background-color: #f0f8ff;
+}
+
+.view-mode-btn.active {
+  background-color: #4a90e2;
+  color: #fff;
 }
 
 .suggestion-text {

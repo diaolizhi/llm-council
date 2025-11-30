@@ -642,6 +642,7 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
                 onAccept={null}
                 onMerge={null}
                 streaming={true}
+                originalPrompt={activeIteration?.prompt || ''}
               />
             )}
 
@@ -651,6 +652,7 @@ function IterationView({ session, activeVersion, onAction, onRestoreVersion }) {
                 suggestions={visibleSuggestions}
                 onAccept={handleAcceptSuggestion}
                 onMerge={handleMergeSuggestions}
+                originalPrompt={activeIteration?.prompt || ''}
               />
             )}
           </>

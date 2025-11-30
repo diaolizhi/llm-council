@@ -167,6 +167,12 @@ export const TRANSLATIONS = {
     'suggestions.analysis': 'Analysis',
     'suggestions.improvedPrompt': 'Improved Prompt',
     'suggestions.noAnalysis': 'No analysis available.',
+    'suggestions.viewContent': 'Suggestion',
+    'suggestions.viewDiff': 'Diff View',
+
+    'diff.noDiff': 'Unable to display diff',
+    'diff.original': 'Original Prompt',
+    'diff.improved': 'Improved Prompt',
 
     // Legacy UI
     'legacy.chat.welcomeTitle': 'Welcome to LLM Council',
@@ -366,6 +372,12 @@ export const TRANSLATIONS = {
     'suggestions.analysis': '原因分析与改进措施',
     'suggestions.improvedPrompt': '改进后的提示词',
     'suggestions.noAnalysis': '暂无分析内容。',
+    'suggestions.viewContent': '建议内容',
+    'suggestions.viewDiff': 'Diff 对比',
+
+    'diff.noDiff': '无法显示差异对比',
+    'diff.original': '原始提示词',
+    'diff.improved': '改进后提示词',
 
     // Legacy UI
     'legacy.chat.welcomeTitle': '欢迎来到 LLM Council',
