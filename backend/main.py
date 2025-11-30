@@ -2,11 +2,12 @@
 
 import os
 import sys
+import traceback
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 import uuid
@@ -25,6 +26,31 @@ from .config import TEST_MODELS
 from .settings import get_settings, save_settings
 
 app = FastAPI(title="Prompt Optimizer API")
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Global exception handler to return detailed error messages.
+    Catches all unhandled exceptions and returns them with full details.
+    """
+    error_detail = str(exc)
+    error_type = type(exc).__name__
+    error_traceback = traceback.format_exc()
+
+    # Log the full error for debugging
+    print(f"Unhandled exception: {error_type}: {error_detail}")
+    print(error_traceback)
+
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": f"{error_type}: {error_detail}",
+            "error_type": error_type,
+            "traceback": error_traceback
+        }
+    )
+
 
 # Enable CORS for local development
 app.add_middleware(
@@ -300,9 +326,10 @@ async def initialize_prompt(session_id: str, request: InitializePromptRequest):
             raise HTTPException(status_code=400, detail="Objective required for generate mode")
         try:
             prompt = await generate_initial_prompt(request.objective)
-        except Exception:
+        except Exception as e:
             # Do not advance stage; allow user to retry generation
-            raise HTTPException(status_code=502, detail="Failed to generate initial prompt. Please retry.")
+            error_detail = str(e) if str(e) else "Unknown error"
+            raise HTTPException(status_code=502, detail=f"Failed to generate initial prompt: {error_detail}")
         change_rationale = f"Generated from objective: {request.objective}"
     elif request.mode == "provide":
         if not request.prompt:

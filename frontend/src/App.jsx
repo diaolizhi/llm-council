@@ -66,7 +66,7 @@ function App() {
       setCurrentVersion(null);
     } catch (error) {
       console.error('Failed to create session:', error);
-      alert('Failed to create new session. Please try again.');
+      alert(error.message || 'Failed to create new session. Please try again.');
     }
   };
 
@@ -93,7 +93,7 @@ function App() {
       await loadSessions();
     } catch (error) {
       console.error('Failed to restore version:', error);
-      alert(t('iteration.alert.restoreFail') || 'Failed to restore version');
+      alert(error.message || t('iteration.alert.restoreFail') || 'Failed to restore version');
     }
   };
 

@@ -6,6 +6,28 @@
 // In development mode (Vite dev server), use absolute URL
 const API_BASE = import.meta.env.DEV ? 'http://localhost:8001' : '';
 
+/**
+ * Extract detailed error message from response.
+ * Tries to get the 'detail' field from JSON response, falls back to status text.
+ */
+async function extractErrorMessage(response, fallbackMessage) {
+  try {
+    const data = await response.json();
+    if (data.detail) {
+      return data.detail;
+    }
+    if (data.message) {
+      return data.message;
+    }
+    if (data.error) {
+      return typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
+    }
+  } catch {
+    // Response is not JSON or already consumed
+  }
+  return `${fallbackMessage} (HTTP ${response.status}: ${response.statusText})`;
+}
+
 export const api = {
   /**
    * List all optimization sessions.
@@ -13,7 +35,8 @@ export const api = {
   async listSessions() {
     const response = await fetch(`${API_BASE}/api/sessions`);
     if (!response.ok) {
-      throw new Error('Failed to list sessions');
+      const errorMsg = await extractErrorMessage(response, 'Failed to list sessions');
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -49,7 +72,8 @@ export const api = {
       body: JSON.stringify({ title, objective }),
     });
     if (!response.ok) {
-      throw new Error('Failed to create session');
+      const errorMsg = await extractErrorMessage(response, 'Failed to create session');
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -60,7 +84,8 @@ export const api = {
   async getSession(sessionId) {
     const response = await fetch(`${API_BASE}/api/sessions/${sessionId}`);
     if (!response.ok) {
-      throw new Error('Failed to get session');
+      const errorMsg = await extractErrorMessage(response, 'Failed to get session');
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -77,7 +102,8 @@ export const api = {
       body: JSON.stringify({ mode, ...data }),
     });
     if (!response.ok) {
-      throw new Error('Failed to initialize prompt');
+      const errorMsg = await extractErrorMessage(response, 'Failed to initialize prompt');
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -94,7 +120,8 @@ export const api = {
       body: JSON.stringify({ models, test_sample_id: testSampleId }),
     });
     if (!response.ok) {
-      throw new Error('Failed to test prompt');
+      const errorMsg = await extractErrorMessage(response, 'Failed to test prompt');
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -111,7 +138,8 @@ export const api = {
       body: JSON.stringify({ model, rating, feedback }),
     });
     if (!response.ok) {
-      throw new Error('Failed to submit feedback');
+      const errorMsg = await extractErrorMessage(response, 'Failed to submit feedback');
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -128,7 +156,8 @@ export const api = {
       body: JSON.stringify({ models }),
     });
     if (!response.ok) {
-      throw new Error('Failed to generate suggestions');
+      const errorMsg = await extractErrorMessage(response, 'Failed to generate suggestions');
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -145,7 +174,8 @@ export const api = {
       body: JSON.stringify({ user_preference: userPreference }),
     });
     if (!response.ok) {
-      throw new Error('Failed to merge suggestions');
+      const errorMsg = await extractErrorMessage(response, 'Failed to merge suggestions');
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -166,7 +196,8 @@ export const api = {
       }),
     });
     if (!response.ok) {
-      throw new Error('Failed to create iteration');
+      const errorMsg = await extractErrorMessage(response, 'Failed to create iteration');
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -177,7 +208,8 @@ export const api = {
   async getMetrics(sessionId) {
     const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/metrics`);
     if (!response.ok) {
-      throw new Error('Failed to get metrics');
+      const errorMsg = await extractErrorMessage(response, 'Failed to get metrics');
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -188,7 +220,8 @@ export const api = {
   async getVersionHistory(sessionId) {
     const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/versions`);
     if (!response.ok) {
-      throw new Error('Failed to get version history');
+      const errorMsg = await extractErrorMessage(response, 'Failed to get version history');
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -201,7 +234,8 @@ export const api = {
       method: 'POST',
     });
     if (!response.ok) {
-      throw new Error('Failed to export session');
+      const errorMsg = await extractErrorMessage(response, 'Failed to export session');
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -218,7 +252,8 @@ export const api = {
       body: JSON.stringify({ version }),
     });
     if (!response.ok) {
-      throw new Error('Failed to restore version');
+      const errorMsg = await extractErrorMessage(response, 'Failed to restore version');
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -229,7 +264,8 @@ export const api = {
   async listTestSamples(sessionId) {
     const response = await fetch(`${API_BASE}/api/sessions/${sessionId}/test-samples`);
     if (!response.ok) {
-      throw new Error('Failed to list test samples');
+      const errorMsg = await extractErrorMessage(response, 'Failed to list test samples');
+      throw new Error(errorMsg);
     }
     const data = await response.json();
     return data.samples || [];
@@ -247,7 +283,8 @@ export const api = {
       body: JSON.stringify({ title, test_input, notes }),
     });
     if (!response.ok) {
-      throw new Error('Failed to create test sample');
+      const errorMsg = await extractErrorMessage(response, 'Failed to create test sample');
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -264,7 +301,8 @@ export const api = {
       body: JSON.stringify({ title, test_input, notes }),
     });
     if (!response.ok) {
-      throw new Error('Failed to update test sample');
+      const errorMsg = await extractErrorMessage(response, 'Failed to update test sample');
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -277,7 +315,8 @@ export const api = {
       method: 'DELETE',
     });
     if (!response.ok) {
-      throw new Error('Failed to delete test sample');
+      const errorMsg = await extractErrorMessage(response, 'Failed to delete test sample');
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -288,7 +327,8 @@ export const api = {
   async getSettings() {
     const response = await fetch(`${API_BASE}/api/settings`);
     if (!response.ok) {
-      throw new Error('Failed to load settings');
+      const errorMsg = await extractErrorMessage(response, 'Failed to load settings');
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -305,7 +345,8 @@ export const api = {
       body: JSON.stringify(payload),
     });
     if (!response.ok) {
-      throw new Error('Failed to save settings');
+      const errorMsg = await extractErrorMessage(response, 'Failed to save settings');
+      throw new Error(errorMsg);
     }
     return response.json();
   },

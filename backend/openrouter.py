@@ -55,9 +55,29 @@ async def query_model(
                 'reasoning_details': message.get('reasoning_details')
             }
 
+    except httpx.HTTPStatusError as e:
+        # Extract detailed error from API response
+        error_detail = str(e)
+        try:
+            error_data = e.response.json()
+            if 'error' in error_data:
+                err = error_data['error']
+                if isinstance(err, dict):
+                    error_detail = err.get('message', str(err))
+                else:
+                    error_detail = str(err)
+        except Exception:
+            pass
+        print(f"Error querying model {model}: {error_detail}")
+        return {'error': error_detail, 'model': model}
+    except httpx.TimeoutException:
+        error_detail = f"Request timed out after {timeout}s"
+        print(f"Error querying model {model}: {error_detail}")
+        return {'error': error_detail, 'model': model}
     except Exception as e:
-        print(f"Error querying model {model}: {e}")
-        return None
+        error_detail = str(e)
+        print(f"Error querying model {model}: {error_detail}")
+        return {'error': error_detail, 'model': model}
 
 
 async def query_models_parallel(

@@ -28,7 +28,7 @@ function SuggestionAggregator({ suggestions, onAccept, onMerge }) {
       setShowMerged(true);
     } catch (error) {
       console.error('Error merging suggestions:', error);
-      alert(t('suggestions.mergeFail'));
+      alert(error.message || t('suggestions.mergeFail'));
     } finally {
       setIsMerging(false);
     }
