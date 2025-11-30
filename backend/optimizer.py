@@ -183,7 +183,15 @@ async def collect_improvement_suggestions(
 
     results_text = "\n\n".join(results_summary)
 
-    template = get_builtin_prompt("improvement-suggestion") or """You are a prompt engineering expert. You are helping optimize a prompt based on test results and feedback. Return ONLY the improved prompt text wrapped in <prompt>...</prompt> XML tags with no explanation outside the tag."""
+    template = get_builtin_prompt("improvement-suggestion") or """You are a prompt engineering expert. You are helping optimize a prompt based on test results and feedback.
+
+IMPORTANT INSTRUCTIONS:
+1. Only modify lines that actually need improvement based on the feedback
+2. Keep all other lines EXACTLY as they are - do not change whitespace, formatting, or wording of lines that don't need changes
+3. Avoid making cosmetic changes (like adding/removing spaces, rewording for style) unless they address specific feedback
+4. Focus on substantive improvements that directly address the test results and user feedback
+
+Return ONLY the improved prompt text wrapped in <prompt>...</prompt> XML tags with no explanation outside the tag. Add a blank line after opening tags and before closing tags for better readability."""
 
     suggestion_prompt = f"""{template}
 
@@ -259,11 +267,16 @@ Your task:
 
 Return your response in the following format:
 <analysis>
+
 原因分析：[分析当前 prompt 存在的问题]
 改进措施：[说明你做了哪些改进]
+
 </analysis>
+
 <prompt>
+
 [改进后的完整 prompt]
+
 </prompt>"""
 
     messages = [{"role": "user", "content": merge_prompt}]

@@ -54,8 +54,8 @@ DEFAULT_BUILTIN_PROMPTS = [
             "You are a prompt engineering expert. Given the current prompt and recent test outputs/feedback, suggest "
             "specific improvements that address feedback, improve clarity, and boost effectiveness.\n\n"
             "Return your response in the following format:\n"
-            "<analysis>\n原因分析：[分析当前 prompt 存在的问题]\n改进措施：[说明你做了哪些改进]\n</analysis>\n"
-            "<prompt>\n[改进后的完整 prompt]\n</prompt>"
+            "<analysis>\n\n原因分析：[分析当前 prompt 存在的问题]\n改进措施：[说明你做了哪些改进]\n\n</analysis>\n\n"
+            "<prompt>\n\n[改进后的完整 prompt]\n\n</prompt>"
         ),
     },
 ]

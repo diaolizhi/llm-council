@@ -703,7 +703,7 @@ async def generate_suggestions_stream(session_id: str, request: GenerateSuggesti
 
     results_text = "\n\n".join(results_summary)
 
-    template = get_builtin_prompt("improvement-suggestion") or """You are a prompt engineering expert. You are helping optimize a prompt based on test results and feedback. Return ONLY the improved prompt text wrapped in <prompt>...</prompt> XML tags with no explanation outside the tag."""
+    template = get_builtin_prompt("improvement-suggestion") or """You are a prompt engineering expert. You are helping optimize a prompt based on test results and feedback. Return ONLY the improved prompt text wrapped in <prompt>...</prompt> XML tags with no explanation outside the tag. Add a blank line after opening tags and before closing tags for better readability."""
 
     suggestion_prompt = f"""{template}
 
