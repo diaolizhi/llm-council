@@ -1,7 +1,5 @@
 # Prompt Optimizer
 
-![prompt-optimizer](header.jpg)
-
 **Iteratively improve your prompts with multi-LLM feedback and suggestions.**
 
 Prompt Optimizer is a local web application that helps you craft better prompts through systematic testing and refinement. Instead of trial-and-error, you get a structured workflow:
@@ -15,13 +13,15 @@ Prompt Optimizer is a local web application that helps you craft better prompts 
 
 The tool uses OpenRouter to access dozens of LLMs, allowing you to see how different models respond to the same prompt and collaboratively improve it based on their collective insights.
 
+[中文文档](README_CN.md)
+
 ## How It Works
 
 ### The Optimization Loop
 
 1. **Initialization**: Either describe your objective (e.g., "Create a code review prompt") and let an LLM generate the initial prompt, or paste an existing prompt to refine.
 
-2. **Testing**: Your prompt is sent to multiple LLMs in parallel. Optionally provide test input (e.g., a code snippet, question, or scenario) to see how the prompt performs in context. You can test with 3-10 models simultaneously.
+2. **Testing**: Your prompt is sent to multiple LLMs in parallel. Provide test input (e.g., a code snippet, question, or scenario) to see how the prompt performs in context. You can test with multiple models simultaneously.
 
 3. **Feedback Collection**: Rate each output (1-5 stars) and optionally provide detailed feedback on what works and what doesn't.
 
@@ -38,17 +38,16 @@ The tool uses OpenRouter to access dozens of LLMs, allowing you to see how diffe
 - **Collaborative Improvement**: Get suggestions from multiple LLMs, each noticing different issues
 - **Version Control**: Full history with diffs, change rationales, and performance tracking
 - **Iterative Workflow**: Unlimited optimization cycles until you're satisfied
+- **Test Samples**: Create and manage reusable test inputs for consistent testing
+- **Customizable Prompts**: Configure built-in prompts for title generation, initial prompt generation, and improvement suggestions
+- **i18n Support**: Interface available in multiple languages
 - **Export**: Save optimized prompts as text, markdown, or JSON with full metadata
-
-## Origin Note
-
-This is a complete transformation of the original "LLM Council" project. The core infrastructure (parallel LLM querying via OpenRouter) proved more valuable for prompt optimization than Q&A deliberation. The codebase has been redesigned from the ground up for this new purpose while preserving the battle-tested API integration layer.
 
 ## Setup
 
 ### 1. Install Dependencies
 
-The project uses [uv](https://docs.astral.sh/uv/) for project management.
+The project uses [uv](https://docs.astral.sh/uv/) for Python package management.
 
 **Backend:**
 ```bash
@@ -64,17 +63,25 @@ cd ..
 
 ### 2. Configure API Key
 
+You can configure the OpenRouter API key in two ways:
+
+**Option 1: Via Settings UI (Recommended)**
+
+Launch the application and click the settings icon to configure your API key directly in the interface.
+
+**Option 2: Via Environment Variable**
+
 Create a `.env` file in the project root:
 
 ```bash
 OPENROUTER_API_KEY=sk-or-v1-...
 ```
 
-Get your API key at [openrouter.ai](https://openrouter.ai/). Make sure to purchase the credits you need, or sign up for automatic top up.
+Get your API key at [openrouter.ai](https://openrouter.ai/).
 
 ### 3. Configure Models (Optional)
 
-Edit `backend/config.py` to customize test models:
+Models can be configured via the Settings UI, or by editing `backend/config.py`:
 
 ```python
 # Models used to test your prompts
@@ -88,14 +95,14 @@ TEST_MODELS = [
 SYNTHESIZER_MODEL = "x-ai/grok-4.1-fast:free"
 
 # Model used to generate initial prompts from objectives
-GENERATOR_MODEL = "google/gemini-2.0-flash-exp:free"
+GENERATOR_MODEL = "x-ai/grok-4.1-fast:free"
 ```
 
 ## Running the Application
 
 ### Desktop Mode (Recommended)
 
-Run as a standalone desktop application with one command:
+Run as a standalone desktop application:
 
 ```bash
 # Build frontend first (one-time)
@@ -139,7 +146,7 @@ Then open http://localhost:5173 in your browser.
 
 ### Building Standalone Executable
 
-To create distributable applications for all platforms, see **[BUILD.md](BUILD.md)** for detailed instructions.
+To create distributable applications, see **[BUILD.md](BUILD.md)** for detailed instructions.
 
 **Quick build:**
 ```bash
@@ -150,19 +157,11 @@ To create distributable applications for all platforms, see **[BUILD.md](BUILD.m
 scripts\build.bat
 ```
 
-**Automated builds:** Push a version tag to automatically build for all platforms:
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-Download builds from GitHub Releases page.
-
 ## Tech Stack
 
 - **Backend:** FastAPI (Python 3.10+), async httpx, OpenRouter API
 - **Frontend:** React + Vite, react-markdown for rendering
-- **Storage:** JSON files in `data/sessions/` (iteration-based schema)
+- **Storage:** JSON files in `data/sessions/`
 - **Package Management:** uv for Python, npm for JavaScript
 
 ## Usage Tips
@@ -170,25 +169,19 @@ Download builds from GitHub Releases page.
 1. **Start Simple**: Begin with a basic prompt, get baseline feedback, then iterate
 2. **Use Specific Feedback**: The more specific your ratings and comments, the better the suggestions
 3. **Test Diverse Models**: Different model architectures notice different issues
-4. **Compare Versions**: Use the version history to see what changes improved performance
-5. **Export Final Prompts**: Save your optimized prompts for reuse in production
-
-## Migration from v1.x (LLM Council)
-
-If you were using the original LLM Council system:
-
-- Old conversation data is archived in `data/archive/council-conversations/`
-- The new system uses a completely different data model (iterations vs messages)
-- Legacy API endpoints and components are preserved in `*_legacy.py` files
-- To roll back: `git checkout v1-council-final` (tag not yet created)
+4. **Create Test Samples**: Build a library of test inputs for consistent evaluation
+5. **Compare Versions**: Use the version history to see what changes improved performance
+6. **Export Final Prompts**: Save your optimized prompts for reuse in production
 
 ## Project Structure
 
 ```
 backend/
   ├── optimizer.py      # Core optimization logic
-  ├── storage.py        # Iteration-based data model
-  ├── config.py         # Model configuration
+  ├── storage.py        # Session and iteration data model
+  ├── settings.py       # Application settings management
+  ├── config.py         # Default model configuration
+  ├── openrouter.py     # OpenRouter API integration
   └── main.py           # FastAPI endpoints
 
 frontend/src/
@@ -197,6 +190,12 @@ frontend/src/
   │   ├── TestResults.jsx           # Output viewing & rating
   │   ├── OutputRating.jsx          # Star rating + feedback
   │   ├── SuggestionAggregator.jsx  # Improvement suggestions
+  │   ├── SettingsView.jsx          # Settings configuration
   │   └── IterationView.jsx         # Main workflow orchestration
-  └── App.jsx           # Session management
+  ├── i18n/                         # Internationalization
+  └── App.jsx                       # Session management
 ```
+
+## License
+
+MIT
